@@ -4,8 +4,10 @@ import { useState } from "react";
 import { useVault } from "@/hooks/useVault";
 import { useOracle } from "@/hooks/useOracle";
 import { useUSDC } from "@/hooks/useUSDC";
+import { useCrossChainArb } from "@/hooks/useCrossChainArb";
+import { usePublicClient } from "wagmi";
 import { contractsConfig } from "@/config/contracts";
-import { parseUnits } from "viem";
+import { parseUnits, formatUnits } from "viem";
 
 export default function ActionsPanel() {
   const [depositAmount, setDepositAmount] = useState("");
@@ -13,9 +15,11 @@ export default function ActionsPanel() {
   const [riskPrice, setRiskPrice] = useState("0.998");
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const { deposit, withdraw, rebalance, isPending: vaultPending } = useVault();
+  const { deposit, withdraw, rebalance, rebalanceWithActiveChainPrice, refetchVaultBalance, isPending: vaultPending } = useVault();
+  const { activeChain } = useCrossChainArb();
+  const publicClient = usePublicClient();
   const { setPrice, isPending: oraclePending } = useOracle();
-  const { balance: usdcBalance, approve, isPending: approvePending } = useUSDC();
+  const { balance: usdcBalance, approve, isPending: approvePending, checkAllowance, refetchBalance } = useUSDC();
 
   const handleDeposit = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
@@ -42,23 +46,70 @@ export default function ActionsPanel() {
 
     try {
       setIsProcessing(true);
-      // First approve USDC spending
-      await approve(contractsConfig.vault.address, depositAmount);
-      // Wait a bit for approval to be confirmed
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      // Then deposit
+      
+      // Step 1: Check and approve USDC spending
+      try {
+        // Check current allowance first
+        if (checkAllowance) {
+          const currentAllowance = await checkAllowance(contractsConfig.vault.address);
+          const amountWei = parseUnits(depositAmount, 6);
+          console.log("Current allowance:", formatUnits(currentAllowance, 6), "USDC");
+          console.log("Required amount:", depositAmount, "USDC");
+          
+          if (currentAllowance < amountWei) {
+            console.log("Insufficient allowance, requesting approval...");
+            // This should trigger wallet popup
+            await approve(contractsConfig.vault.address, depositAmount);
+          } else {
+            console.log("Allowance sufficient, skipping approval");
+          }
+        } else {
+          // Fallback: always try to approve
+          await approve(contractsConfig.vault.address, depositAmount);
+        }
+      } catch (approveError: any) {
+        console.error("Approval error:", approveError);
+        if (approveError?.message?.includes("rejected") || approveError?.message?.includes("denied")) {
+          alert("Approval was rejected. Please approve the transaction in your wallet to continue.");
+          return;
+        }
+        if (approveError?.message?.includes("hash not received")) {
+          alert(
+            "Approval transaction not started.\n\n" +
+            "Please check:\n" +
+            "1. Your wallet is connected\n" +
+            "2. Your wallet popup is not blocked\n" +
+            "3. Try refreshing the page and connecting your wallet again\n\n" +
+            "Then try depositing again."
+          );
+          return;
+        }
+        throw approveError;
+      }
+      
+      // Step 2: Deposit (after approval is confirmed)
       await deposit(depositAmount);
       setDepositAmount("");
+      
+      // Refetch balances after successful deposit
+      refetchVaultBalance();
+      refetchBalance();
     } catch (error: any) {
       console.error("Deposit error:", error);
       const errorMessage = error.message || "Unknown error";
-      if (errorMessage.includes("insufficient balance")) {
+      if (errorMessage.includes("insufficient balance") || errorMessage.includes("exceeds allowance")) {
         alert(
-          `Insufficient USDC balance!\n\n` +
+          `Deposit failed!\n\n` +
+          `Error: ${errorMessage}\n\n` +
           `You have: ${availableBalance.toFixed(2)} USDC\n` +
           `Trying to deposit: ${depositValue.toFixed(2)} USDC\n\n` +
-          `You need to get USDC tokens first. The USDC contract address is:\n` +
-          `0x3600000000000000000000000000000000000000`
+          `Make sure you have approved the vault to spend your USDC.`
+        );
+      } else if (errorMessage.includes("exceeds allowance")) {
+        alert(
+          `Insufficient allowance!\n\n` +
+          `The vault needs approval to transfer your USDC.\n` +
+          `Please try depositing again - the approval step should happen automatically.`
         );
       } else {
         alert(`Deposit failed: ${errorMessage}`);
@@ -80,6 +131,11 @@ export default function ActionsPanel() {
     try {
       setIsProcessing(true);
       await withdraw(withdrawAmount);
+      // Wait for transaction to be confirmed and refetch balances
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+      refetchVaultBalance();
+      refetchAll();
+      refetchBalance();
       setWithdrawAmount("");
     } catch (error: any) {
       console.error("Withdraw error:", error);
@@ -95,12 +151,19 @@ export default function ActionsPanel() {
     
     try {
       setIsProcessing(true);
-      // First set oracle price to 1.00 to ensure Farming mode
-      await setPrice("1.00");
-      // Wait for price update to be confirmed
-      await new Promise((resolve) => setTimeout(resolve, 3000));
-      // Then trigger rebalance (will put funds in Yield Pool in Farming mode)
-      await rebalance();
+      
+      // Use active chain's price if available, otherwise use default
+      if (activeChain && publicClient) {
+        // Rebalance using the active chain's price
+        await rebalanceWithActiveChainPrice(activeChain, publicClient);
+      } else {
+        // Fallback: set oracle price to 1.00 to ensure Farming mode
+        await setPrice("1.00");
+        // Wait for price update to be confirmed
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+        // Then trigger rebalance (will put funds in Yield Pool in Farming mode)
+        await rebalance();
+      }
     } catch (error: any) {
       console.error("Rebalance error:", error);
       alert(`Rebalance failed: ${error.message || "Unknown error"}`);
@@ -205,16 +268,23 @@ export default function ActionsPanel() {
         {/* Rebalance Section */}
         <div className="bg-white border border-gray-200 rounded-sm p-5">
           <label className="block text-sm text-gray-900 mb-2">Rebalance</label>
-          <p className="text-xs text-gray-500 mb-4">
-            Sets oracle price to $1.00, switches to Farming mode, and rebalances funds to Yield Pool.
+          <p className="text-xs text-gray-500 mb-3">
+            Rebalancing is <strong>automatic</strong>. The vault monitors the active chain's price ({activeChain || "loading..."}) 
+            and automatically moves funds between Yield Pool and Safe Pool based on price thresholds.
           </p>
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-sm">
+            <p className="text-xs text-blue-800">
+              <strong>Auto-Rebalance:</strong> When price crosses $0.999 threshold or changes significantly, 
+              funds are automatically rebalanced. Manual rebalance available below.
+            </p>
+          </div>
           <button
             type="button"
             onClick={handleRebalance}
             disabled={isLoading}
             className="px-6 py-2 bg-green-600 text-white rounded-sm font-medium hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
           >
-            {isLoading ? "Processing..." : "Rebalance Now"}
+            {isLoading ? "Processing..." : "Manual Rebalance"}
           </button>
         </div>
 

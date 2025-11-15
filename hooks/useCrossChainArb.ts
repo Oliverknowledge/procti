@@ -25,6 +25,11 @@ export const useCrossChainArb = () => {
     address: contractsConfig.crossChainArb.address,
     abi: contractsConfig.crossChainArb.abi,
     functionName: "getSupportedChains",
+    query: {
+      refetchInterval: false, // Disable auto-refetch
+      refetchOnWindowFocus: false,
+      refetchOnMount: false,
+    },
   });
 
   // Read best chain
@@ -32,6 +37,23 @@ export const useCrossChainArb = () => {
     address: contractsConfig.crossChainArb.address,
     abi: contractsConfig.crossChainArb.abi,
     functionName: "bestChain",
+    query: {
+      refetchInterval: false, // Disable auto-refetch
+      refetchOnWindowFocus: false,
+      refetchOnMount: false,
+    },
+  });
+
+  // Read active chain
+  const { data: activeChain, refetch: refetchActiveChain } = useReadContract({
+    address: contractsConfig.crossChainArb.address,
+    abi: contractsConfig.crossChainArb.abi,
+    functionName: "activeChain",
+    query: {
+      refetchInterval: false, // Disable auto-refetch
+      refetchOnWindowFocus: false,
+      refetchOnMount: false,
+    },
   });
 
   const [chainData, setChainData] = useState<ChainData[]>([]);
@@ -40,8 +62,8 @@ export const useCrossChainArb = () => {
   // Helper function to retry with exponential backoff
   const retryWithBackoff = async <T,>(
     fn: () => Promise<T>,
-    maxRetries = 3,
-    baseDelay = 1000
+    maxRetries = 5,
+    baseDelay = 2000
   ): Promise<T> => {
     for (let i = 0; i < maxRetries; i++) {
       try {
@@ -53,16 +75,22 @@ export const useCrossChainArb = () => {
           error?.statusCode === 429 ||
           error?.message?.includes("429") ||
           error?.message?.includes("Too Many Requests") ||
-          error?.cause?.status === 429;
+          error?.cause?.status === 429 ||
+          error?.shortMessage?.includes("429");
         
-        // If it's a 429 (rate limit) error, retry with backoff
+        // If it's a 429 (rate limit) error, retry with longer backoff
         if (i < maxRetries - 1 && isRateLimit) {
+          // Exponential backoff: 2s, 4s, 8s, 16s, 32s
           const delay = baseDelay * Math.pow(2, i);
-          console.log(`Rate limited, retrying in ${delay}ms... (attempt ${i + 1}/${maxRetries})`);
+          console.warn(`Rate limited (429), retrying in ${delay}ms... (attempt ${i + 1}/${maxRetries})`);
           await new Promise((resolve) => setTimeout(resolve, delay));
           continue;
         }
-        throw error;
+        
+        // If it's not a rate limit error or we've exhausted retries, throw
+        if (!isRateLimit || i === maxRetries - 1) {
+          throw error;
+        }
       }
     }
     throw new Error("Max retries exceeded");
@@ -76,52 +104,63 @@ export const useCrossChainArb = () => {
       setIsLoadingChains(true);
       const data: ChainData[] = [];
 
-      // Process chains sequentially with delays to avoid rate limiting
+      // Process chains sequentially with longer delays to avoid rate limiting
       for (let i = 0; i < supportedChains.length; i++) {
         const chain = supportedChains[i];
         
-        // Add delay between chains (except for the first one) to avoid rate limiting
+        // Add longer delay between chains to avoid rate limiting
+        // Increased delays to prevent 429 errors
         if (i > 0) {
-          await new Promise((resolve) => setTimeout(resolve, 500));
+          await new Promise((resolve) => setTimeout(resolve, 2000)); // Increased from 1s to 2s
         }
 
         try {
-          // Fetch data for this chain with retry logic
-          const [price, yield_, risk, score] = await Promise.all([
-            retryWithBackoff(() =>
-              publicClient.readContract({
-                address: contractsConfig.crossChainArb.address,
-                abi: contractsConfig.crossChainArb.abi,
-                functionName: "chainPrices",
-                args: [chain],
-              })
-            ),
-            retryWithBackoff(() =>
-              publicClient.readContract({
-                address: contractsConfig.crossChainArb.address,
-                abi: contractsConfig.crossChainArb.abi,
-                functionName: "chainYields",
-                args: [chain],
-              })
-            ),
-            retryWithBackoff(() =>
-              publicClient.readContract({
-                address: contractsConfig.crossChainArb.address,
-                abi: contractsConfig.crossChainArb.abi,
-                functionName: "chainRiskScores",
-                args: [chain],
-              })
-            ),
-            retryWithBackoff(() =>
-              publicClient.readContract({
-                address: contractsConfig.crossChainArb.address,
-                abi: contractsConfig.crossChainArb.abi,
-                functionName: "getChainScore",
-                args: [chain],
-              })
-            ),
-          ]);
+          // Fetch data for this chain sequentially (not in parallel) to reduce load
+          // Increased delays between calls to avoid rate limiting
+          const price = await retryWithBackoff(() =>
+            publicClient.readContract({
+              address: contractsConfig.crossChainArb.address,
+              abi: contractsConfig.crossChainArb.abi,
+              functionName: "chainPrices",
+              args: [chain],
+            })
+          );
+          
+          // Increased delay between each call
+          await new Promise((resolve) => setTimeout(resolve, 500)); // Increased from 200ms to 500ms
+          
+          const yield_ = await retryWithBackoff(() =>
+            publicClient.readContract({
+              address: contractsConfig.crossChainArb.address,
+              abi: contractsConfig.crossChainArb.abi,
+              functionName: "chainYields",
+              args: [chain],
+            })
+          );
+          
+          await new Promise((resolve) => setTimeout(resolve, 500)); // Increased from 200ms to 500ms
+          
+          const risk = await retryWithBackoff(() =>
+            publicClient.readContract({
+              address: contractsConfig.crossChainArb.address,
+              abi: contractsConfig.crossChainArb.abi,
+              functionName: "chainRiskScores",
+              args: [chain],
+            })
+          );
+          
+          await new Promise((resolve) => setTimeout(resolve, 500)); // Increased from 200ms to 500ms
+          
+          const score = await retryWithBackoff(() =>
+            publicClient.readContract({
+              address: contractsConfig.crossChainArb.address,
+              abi: contractsConfig.crossChainArb.abi,
+              functionName: "getChainScore",
+              args: [chain],
+            })
+          );
 
+          // Process the fetched data
           const chainInfo = {
             name: chain,
             price: Number(formatUnits(price as bigint, 18)),
@@ -146,11 +185,14 @@ export const useCrossChainArb = () => {
     }
   }, [publicClient, supportedChains]);
 
-  useEffect(() => {
-    if (supportedChains && publicClient) {
-      fetchAllChainData();
-    }
-  }, [supportedChains, publicClient, fetchAllChainData]);
+  // DISABLED: Automatic fetching causes too many RPC calls (20+ per fetch)
+  // Chain data will only be fetched when explicitly called via refetchChainData
+  // Users can manually refresh via ChainDataManager component
+  // useEffect(() => {
+  //   if (supportedChains && publicClient) {
+  //     fetchAllChainData();
+  //   }
+  // }, [supportedChains, publicClient]);
 
   // Set chain price
   const setChainPrice = async (chain: string, price: string) => {
@@ -278,17 +320,52 @@ export const useCrossChainArb = () => {
   console.log("Calculated best chain:", calculatedBestChain);
   console.log("Effective best chain:", effectiveBestChain);
 
+  // Switch to best chain
+  const switchToBestChain = async () => {
+    try {
+      await writeContract({
+        address: contractsConfig.crossChainArb.address,
+        abi: contractsConfig.crossChainArb.abi,
+        functionName: "switchToBestChain",
+        args: [],
+      });
+    } catch (err) {
+      console.error("Switch to best chain error:", err);
+      throw err;
+    }
+  };
+
+  // Simulate bridge
+  const simulateBridge = async (toChain: string, amount: string) => {
+    try {
+      const amountWei = parseUnits(amount, 6); // USDC has 6 decimals
+      await writeContract({
+        address: contractsConfig.crossChainArb.address,
+        abi: contractsConfig.crossChainArb.abi,
+        functionName: "simulateBridge",
+        args: [toChain, amountWei],
+      });
+    } catch (err) {
+      console.error("Simulate bridge error:", err);
+      throw err;
+    }
+  };
+
   return {
     supportedChains: (supportedChains as string[]) || [],
     bestChain: effectiveBestChain,
+    activeChain: (activeChain as string) || "",
     chainData,
     isLoadingChains,
     setChainPrice,
     setChainYield,
     setChainRisk,
     detectArbitrage,
+    switchToBestChain,
+    simulateBridge,
     refetchChains,
     refetchBestChain,
+    refetchActiveChain,
     refetchChainData: fetchAllChainData,
     isPending,
     isConfirming,

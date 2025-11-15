@@ -37,8 +37,8 @@ export const useModeHistory = () => {
   // Helper function to retry with exponential backoff
   const retryWithBackoff = async <T,>(
     fn: () => Promise<T>,
-    maxRetries = 3,
-    baseDelay = 1000
+    maxRetries = 5,
+    baseDelay = 2000
   ): Promise<T> => {
     for (let i = 0; i < maxRetries; i++) {
       try {
@@ -50,16 +50,22 @@ export const useModeHistory = () => {
           error?.statusCode === 429 ||
           error?.message?.includes("429") ||
           error?.message?.includes("Too Many Requests") ||
-          error?.cause?.status === 429;
+          error?.cause?.status === 429 ||
+          error?.shortMessage?.includes("429");
         
-        // If it's a 429 (rate limit) error, retry with backoff
+        // If it's a 429 (rate limit) error, retry with longer backoff
         if (i < maxRetries - 1 && isRateLimit) {
+          // Exponential backoff: 2s, 4s, 8s, 16s, 32s
           const delay = baseDelay * Math.pow(2, i);
-          console.log(`Rate limited on getLogs, retrying in ${delay}ms... (attempt ${i + 1}/${maxRetries})`);
+          console.warn(`Rate limited (429) in getLogs, retrying in ${delay}ms... (attempt ${i + 1}/${maxRetries})`);
           await new Promise((resolve) => setTimeout(resolve, delay));
           continue;
         }
-        throw error;
+        
+        // If it's not a rate limit error or we've exhausted retries, throw
+        if (!isRateLimit || i === maxRetries - 1) {
+          throw error;
+        }
       }
     }
     throw new Error("Max retries exceeded");

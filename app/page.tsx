@@ -11,6 +11,12 @@ import ArbitrageDetector from "@/components/ArbitrageDetector";
 import ChainDataManager from "@/components/ChainDataManager";
 import CrossChainOpportunityChecker from "@/components/CrossChainOpportunityChecker";
 import AutoChainDataUpdater from "@/components/AutoChainDataUpdater";
+import ActiveChainDisplay from "@/components/ActiveChainDisplay";
+import CrossChainDecisionLog from "@/components/CrossChainDecisionLog";
+import CrossChainMoveVisualizer from "@/components/CrossChainMoveVisualizer";
+import SmartCrossChainChecker from "@/components/SmartCrossChainChecker";
+import SimulatedBridge from "@/components/SimulatedBridge";
+import UnifiedBalanceDisplay from "@/components/UnifiedBalanceDisplay";
 import { useVault } from "@/hooks/useVault";
 import { usePools } from "@/hooks/usePools";
 import { useOracle } from "@/hooks/useOracle";
@@ -21,59 +27,46 @@ import { useAccount } from "wagmi";
 
 export default function Home() {
   const { isConnected } = useAccount();
-  const { refetchMode, refetchVaultBalance, refetchRiskProfile } = useVault();
+  const { refetchMode, refetchVaultBalance, refetchUnifiedBalance, refetchRiskProfile } = useVault();
   const { refetchAll } = usePools();
   const { refetchPrice } = useOracle();
   const { refetchBalance } = useUSDC();
   const { refetch: refetchModeHistory } = useModeHistory();
   const { refetchChainData, refetchBestChain } = useCrossChainArb();
 
-  // Auto-refresh every 4 seconds (vault data)
-  // Chain data refreshes less frequently to avoid rate limiting
+  // Auto-refresh - significantly reduced frequency to avoid rate limiting
   useEffect(() => {
     if (!isConnected) return;
 
+    // Main data refresh - significantly reduced to avoid rate limiting
     const interval = setInterval(() => {
       refetchMode();
       refetchVaultBalance();
+      refetchUnifiedBalance();
       refetchAll();
       refetchPrice();
       refetchBalance();
-      // Mode history refreshes every 20 seconds to avoid rate limiting
-      // refetchModeHistory is called separately below
       refetchRiskProfile();
-      // Chain data refreshes every 15 seconds to avoid rate limiting
-      // refetchChainData and refetchBestChain are called separately below
-    }, 4000);
+    }, 60000); // Increased from 20s to 60s (1 minute)
 
-    // Separate interval for chain data (less frequent)
-    const chainDataInterval = setInterval(() => {
-      refetchChainData();
-      refetchBestChain();
-    }, 15000);
+    // Chain data - DISABLED: Chain data fetching makes too many calls (20+ per fetch)
+    // Users can manually refresh via ChainDataManager component
+    // const chainDataInterval = setInterval(() => {
+    //   refetchChainData();
+    //   refetchBestChain();
+    // }, 300000); // 5 minutes - DISABLED to avoid rate limiting
 
-    // Separate interval for mode history (less frequent to avoid rate limiting)
+    // Mode history - less frequent
     const modeHistoryInterval = setInterval(() => {
       refetchModeHistory();
-    }, 20000);
+    }, 120000); // Increased from 60s to 120s (2 minutes)
 
     return () => {
       clearInterval(interval);
-      clearInterval(chainDataInterval);
+      // clearInterval(chainDataInterval); // Disabled
       clearInterval(modeHistoryInterval);
     };
-  }, [
-    isConnected,
-    refetchMode,
-    refetchVaultBalance,
-    refetchAll,
-    refetchPrice,
-    refetchBalance,
-    refetchModeHistory,
-    refetchRiskProfile,
-    refetchChainData,
-    refetchBestChain,
-  ]);
+  }, [isConnected]); // Only depend on isConnected - refetch functions are stable
 
   return (
     <div className="min-h-screen bg-[#fafafa]">
@@ -99,6 +92,8 @@ export default function Home() {
           </div>
         ) : (
           <div className="space-y-12">
+            {/* Unified Balance Display - Prominent at Top */}
+            <UnifiedBalanceDisplay />
             <VaultDashboard />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <ActionsPanel />
@@ -117,6 +112,22 @@ export default function Home() {
                 </div>
                 <AutoChainDataUpdater />
                 <ChainDataManager />
+              </div>
+            </div>
+
+            {/* Enhanced Cross-Chain Features Section */}
+            <div className="border-t border-gray-200 pt-12">
+              <h2 className="text-2xl font-medium text-gray-900 mb-6">Enhanced Cross-Chain Features</h2>
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <ActiveChainDisplay />
+                  <SmartCrossChainChecker />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <SimulatedBridge />
+                  <CrossChainMoveVisualizer />
+                </div>
+                <CrossChainDecisionLog />
               </div>
             </div>
           </div>

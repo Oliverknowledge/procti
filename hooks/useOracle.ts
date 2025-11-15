@@ -15,6 +15,11 @@ export const useOracle = () => {
     address: contractsConfig.oracle.address,
     abi: contractsConfig.oracle.abi,
     functionName: "getPrice",
+    query: {
+      refetchInterval: false, // Disable auto-refetch
+      refetchOnWindowFocus: false,
+      refetchOnMount: false,
+    },
   });
 
   const setPrice = async (priceValue: string) => {

@@ -14,6 +14,11 @@ export const usePools = () => {
     address: contractsConfig.yieldPool.address,
     abi: contractsConfig.yieldPool.abi,
     functionName: "getTotalBalance",
+    query: {
+      refetchInterval: false, // Disable auto-refetch
+      refetchOnWindowFocus: false,
+      refetchOnMount: false,
+    },
   });
 
   // Read SafePool balance
@@ -25,6 +30,11 @@ export const usePools = () => {
     address: contractsConfig.safePool.address,
     abi: contractsConfig.safePool.abi,
     functionName: "getTotalBalance",
+    query: {
+      refetchInterval: false, // Disable auto-refetch
+      refetchOnWindowFocus: false,
+      refetchOnMount: false,
+    },
   });
 
   const refetchAll = () => {
