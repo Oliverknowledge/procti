@@ -89,7 +89,7 @@ export default function CrossChainOpportunityChecker() {
           })
         );
 
-        const decisionHistory: CrossChainDecision[] = await Promise.all(
+        const decisionHistoryRaw = await Promise.all(
           logs.map(async (log) => {
             try {
               const decoded = decodeEventLog({
@@ -114,13 +114,14 @@ export default function CrossChainOpportunityChecker() {
                 reason,
                 blockNumber: log.blockNumber,
                 transactionHash: log.transactionHash,
-              };
+              } as CrossChainDecision;
             } catch (err) {
               console.error("Error decoding event:", err);
               return null;
             }
           })
         );
+        const decisionHistory: CrossChainDecision[] = decisionHistoryRaw.filter((decision): decision is CrossChainDecision => decision !== null);
 
         const validDecisions = decisionHistory.filter((d): d is CrossChainDecision => d !== null);
         validDecisions.sort((a, b) => {

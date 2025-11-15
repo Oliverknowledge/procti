@@ -33,8 +33,8 @@ export const usePools = () => {
   };
 
   return {
-    yieldPoolBalance: yieldPoolBalance ? formatUnits(yieldPoolBalance, 6) : "0",
-    safePoolBalance: safePoolBalance ? formatUnits(safePoolBalance, 6) : "0",
+    yieldPoolBalance: yieldPoolBalance && typeof yieldPoolBalance === 'bigint' ? formatUnits(yieldPoolBalance, 6) : "0",
+    safePoolBalance: safePoolBalance && typeof safePoolBalance === 'bigint' ? formatUnits(safePoolBalance, 6) : "0",
     refetchYieldPool,
     refetchSafePool,
     refetchAll,

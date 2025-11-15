@@ -97,7 +97,7 @@ export const useModeHistory = () => {
       );
 
       // Decode and process events
-      const modeHistory: ModeChangeEvent[] = await Promise.all(
+      const modeHistoryRaw = await Promise.all(
         logs.map(async (log) => {
           try {
             const decoded = decodeEventLog({
@@ -124,13 +124,14 @@ export const useModeHistory = () => {
               reason,
               blockNumber: log.blockNumber,
               transactionHash: log.transactionHash,
-            };
+            } as ModeChangeEvent;
           } catch (err) {
             console.error("Error decoding event:", err);
             return null;
           }
         })
       );
+      const modeHistory: ModeChangeEvent[] = modeHistoryRaw.filter((event): event is ModeChangeEvent => event !== null);
 
       // Filter out nulls and sort by block number (oldest first)
       const validHistory = modeHistory.filter((h): h is ModeChangeEvent => h !== null);

@@ -81,7 +81,7 @@ export default function CrossChainDecisionLog() {
         })
       );
 
-      const decodedDecisions: Decision[] = await Promise.all(
+      const decodedDecisions: Decision[] = (await Promise.all(
         logs.map(async (log) => {
           try {
             const decoded = decodeEventLog({
@@ -106,7 +106,7 @@ export default function CrossChainDecisionLog() {
             return null;
           }
         })
-      );
+      )).filter((decision): decision is Decision => decision !== null);
 
       const validDecisions = decodedDecisions.filter((d) => d !== null) as Decision[];
       validDecisions.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());

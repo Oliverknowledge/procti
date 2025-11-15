@@ -42,7 +42,7 @@ export const useUSDC = () => {
   };
 
   return {
-    balance: balance ? formatUnits(balance, 6) : "0",
+    balance: balance && typeof balance === 'bigint' ? formatUnits(balance, 6) : "0",
     refetchBalance,
     approve,
     isPending,

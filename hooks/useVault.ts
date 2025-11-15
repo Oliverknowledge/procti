@@ -189,7 +189,7 @@ export const useVault = () => {
     mode,
     modeString: getModeString(),
     modeColor: getModeColor(),
-    vaultBalance: vaultBalance ? formatUnits(vaultBalance, 6) : "0",
+    vaultBalance: vaultBalance && typeof vaultBalance === 'bigint' ? formatUnits(vaultBalance, 6) : "0",
     userRiskProfile,
     riskProfileString: getRiskProfileString(),
     deposit,

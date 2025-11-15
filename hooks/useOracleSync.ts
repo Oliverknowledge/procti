@@ -84,7 +84,12 @@ export const useOracleSync = () => {
         });
 
         // Convert price from 18 decimals to string
-        const priceFormatted = formatUnits(chainPrice, 18);
+        const priceBigInt = typeof chainPrice === 'bigint' 
+          ? chainPrice 
+          : (typeof chainPrice === 'number' || typeof chainPrice === 'string')
+          ? BigInt(chainPrice)
+          : BigInt(0);
+        const priceFormatted = formatUnits(priceBigInt, 18);
         
         // Set the oracle price to the active chain's price
         const priceWei = parseUnits(priceFormatted, 18);

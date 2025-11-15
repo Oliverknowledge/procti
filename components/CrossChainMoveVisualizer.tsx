@@ -81,7 +81,7 @@ export default function CrossChainMoveVisualizer() {
         })
       );
 
-      const decodedMoves: Move[] = await Promise.all(
+      const decodedMoves: Move[] = (await Promise.all(
         logs.map(async (log) => {
           try {
             const decoded = decodeEventLog({
@@ -106,7 +106,7 @@ export default function CrossChainMoveVisualizer() {
             return null;
           }
         })
-      );
+      )).filter((move): move is Move => move !== null);
 
       const validMoves = decodedMoves.filter((m) => m !== null) as Move[];
       validMoves.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());

@@ -45,7 +45,7 @@ export const useOracle = () => {
   };
 
   const getPriceFormatted = () => {
-    if (!price) return "0";
+    if (!price || typeof price !== 'bigint') return "0";
     return formatUnits(price, 18);
   };
 

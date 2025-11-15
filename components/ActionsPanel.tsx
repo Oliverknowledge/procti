@@ -87,8 +87,6 @@ export default function ActionsPanel() {
       // Wait for transaction to be confirmed and refetch balances
       await new Promise((resolve) => setTimeout(resolve, 3000));
       refetchVaultBalance();
-      refetchAll();
-      refetchBalance();
       setWithdrawAmount("");
     } catch (error: any) {
       console.error("Withdraw error:", error);
