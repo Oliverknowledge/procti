@@ -45,7 +45,7 @@ export default function MultiChainDashboard() {
       {allSame && (
         <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-sm">
           <p className="text-xs text-yellow-800">
-            <strong>Note:</strong> All chains currently have the same values. Use the "Chain Data Manager" below to set different prices, yields, and risk scores for each chain.
+            <strong>Note:</strong> All chains currently have the same values. Use the &quot;Chain Data Manager&quot; below to set different prices, yields, and risk scores for each chain.
           </p>
         </div>
       )}

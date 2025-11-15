@@ -112,8 +112,7 @@ export const useAutoRebalance = () => {
     }, 1000);
 
     return () => clearTimeout(timeoutId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [priceFormatted, riskProfileString, activeChain, publicClient, vaultBalance]); // rebalance functions are stable
+  }, [priceFormatted, riskProfileString, activeChain, publicClient, vaultBalance, rebalance, rebalanceWithActiveChainPrice]);
 
   return {
     isRebalancing: isRebalancing.current,

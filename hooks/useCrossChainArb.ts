@@ -25,11 +25,6 @@ export const useCrossChainArb = () => {
     address: contractsConfig.crossChainArb.address,
     abi: contractsConfig.crossChainArb.abi,
     functionName: "getSupportedChains",
-    query: {
-      refetchInterval: false, // Disable auto-refetch
-      refetchOnWindowFocus: false,
-      refetchOnMount: false,
-    },
   });
 
   // Read best chain
@@ -37,11 +32,6 @@ export const useCrossChainArb = () => {
     address: contractsConfig.crossChainArb.address,
     abi: contractsConfig.crossChainArb.abi,
     functionName: "bestChain",
-    query: {
-      refetchInterval: false, // Disable auto-refetch
-      refetchOnWindowFocus: false,
-      refetchOnMount: false,
-    },
   });
 
   // Read active chain
@@ -49,11 +39,6 @@ export const useCrossChainArb = () => {
     address: contractsConfig.crossChainArb.address,
     abi: contractsConfig.crossChainArb.abi,
     functionName: "activeChain",
-    query: {
-      refetchInterval: false, // Disable auto-refetch
-      refetchOnWindowFocus: false,
-      refetchOnMount: false,
-    },
   });
 
   const [chainData, setChainData] = useState<ChainData[]>([]);
@@ -109,14 +94,14 @@ export const useCrossChainArb = () => {
         const chain = supportedChains[i];
         
         // Add longer delay between chains to avoid rate limiting
-        // Increased delays to prevent 429 errors
+        // Start with 1s delay, increase if we've had rate limit issues
         if (i > 0) {
-          await new Promise((resolve) => setTimeout(resolve, 2000)); // Increased from 1s to 2s
+          await new Promise((resolve) => setTimeout(resolve, 1000));
         }
 
         try {
           // Fetch data for this chain sequentially (not in parallel) to reduce load
-          // Increased delays between calls to avoid rate limiting
+          // This reduces concurrent requests to the RPC
           const price = await retryWithBackoff(() =>
             publicClient.readContract({
               address: contractsConfig.crossChainArb.address,
@@ -126,8 +111,8 @@ export const useCrossChainArb = () => {
             })
           );
           
-          // Increased delay between each call
-          await new Promise((resolve) => setTimeout(resolve, 500)); // Increased from 200ms to 500ms
+          // Small delay between each call
+          await new Promise((resolve) => setTimeout(resolve, 200));
           
           const yield_ = await retryWithBackoff(() =>
             publicClient.readContract({
@@ -138,7 +123,7 @@ export const useCrossChainArb = () => {
             })
           );
           
-          await new Promise((resolve) => setTimeout(resolve, 500)); // Increased from 200ms to 500ms
+          await new Promise((resolve) => setTimeout(resolve, 200));
           
           const risk = await retryWithBackoff(() =>
             publicClient.readContract({
@@ -149,7 +134,7 @@ export const useCrossChainArb = () => {
             })
           );
           
-          await new Promise((resolve) => setTimeout(resolve, 500)); // Increased from 200ms to 500ms
+          await new Promise((resolve) => setTimeout(resolve, 200));
           
           const score = await retryWithBackoff(() =>
             publicClient.readContract({
@@ -185,14 +170,11 @@ export const useCrossChainArb = () => {
     }
   }, [publicClient, supportedChains]);
 
-  // DISABLED: Automatic fetching causes too many RPC calls (20+ per fetch)
-  // Chain data will only be fetched when explicitly called via refetchChainData
-  // Users can manually refresh via ChainDataManager component
-  // useEffect(() => {
-  //   if (supportedChains && publicClient) {
-  //     fetchAllChainData();
-  //   }
-  // }, [supportedChains, publicClient]);
+  useEffect(() => {
+    if (supportedChains && publicClient) {
+      fetchAllChainData();
+    }
+  }, [supportedChains, publicClient, fetchAllChainData]);
 
   // Set chain price
   const setChainPrice = async (chain: string, price: string) => {

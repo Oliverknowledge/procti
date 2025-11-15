@@ -16,11 +16,6 @@ export const useVault = () => {
     address: contractsConfig.vault.address,
     abi: contractsConfig.vault.abi,
     functionName: "getMode",
-    query: {
-      refetchInterval: false, // Disable auto-refetch
-      refetchOnWindowFocus: false,
-      refetchOnMount: false,
-    },
   });
 
   // Read vault balance (total deposits)
@@ -28,23 +23,6 @@ export const useVault = () => {
     address: contractsConfig.vault.address,
     abi: contractsConfig.vault.abi,
     functionName: "totalDeposits",
-    query: {
-      refetchInterval: false, // Disable auto-refetch
-      refetchOnWindowFocus: false,
-      refetchOnMount: false,
-    },
-  });
-
-  // Read unified vault balance (across all chains)
-  const { data: unifiedVaultBalance, refetch: refetchUnifiedBalance } = useReadContract({
-    address: contractsConfig.vault.address,
-    abi: contractsConfig.vault.abi,
-    functionName: "getUnifiedVaultBalance",
-    query: {
-      refetchInterval: false, // Disable auto-refetch
-      refetchOnWindowFocus: false,
-      refetchOnMount: false,
-    },
   });
 
   // Read user risk profile
@@ -56,9 +34,6 @@ export const useVault = () => {
     args: address ? [address] : undefined,
     query: {
       enabled: !!address,
-      refetchInterval: false, // Disable auto-refetch
-      refetchOnWindowFocus: false,
-      refetchOnMount: false,
     },
   });
 
@@ -215,7 +190,6 @@ export const useVault = () => {
     modeString: getModeString(),
     modeColor: getModeColor(),
     vaultBalance: vaultBalance ? formatUnits(vaultBalance, 6) : "0",
-    unifiedVaultBalance: unifiedVaultBalance ? formatUnits(unifiedVaultBalance, 6) : "0",
     userRiskProfile,
     riskProfileString: getRiskProfileString(),
     deposit,
@@ -227,7 +201,6 @@ export const useVault = () => {
     checkForCrossChainOpportunities,
     refetchMode,
     refetchVaultBalance,
-    refetchUnifiedBalance,
     refetchRiskProfile,
     isPending,
     isConfirming,

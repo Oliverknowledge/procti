@@ -119,13 +119,10 @@ export default function CrossChainMoveVisualizer() {
   };
 
   useEffect(() => {
-    if (!publicClient || !currentBlock) return;
-    
     fetchMoves();
-    const interval = setInterval(fetchMoves, 60000); // Increased from 20s to 60s
+    const interval = setInterval(fetchMoves, 20000);
     return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [publicClient, currentBlock]); // fetchMoves is stable
+  }, [publicClient, currentBlock]);
 
   return (
     <div className="bg-white border border-gray-200 rounded-sm p-5">

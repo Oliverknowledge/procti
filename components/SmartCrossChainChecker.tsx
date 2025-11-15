@@ -48,30 +48,14 @@ export default function SmartCrossChainChecker() {
           error?.message?.includes("Too Many Requests") ||
           error?.cause?.status === 429 ||
           error?.shortMessage?.includes("429");
-
-        // Check for network errors (ERR_NETWORK_CHANGED, connection issues)
-        const isNetworkError =
-          error?.message?.includes("ERR_NETWORK_CHANGED") ||
-          error?.message?.includes("network") ||
-          error?.message?.includes("Network") ||
-          error?.message?.includes("fetch") ||
-          error?.message?.includes("Failed to fetch") ||
-          error?.name === "HttpRequestError";
         
-        if (i < maxRetries - 1 && (isRateLimit || isNetworkError)) {
+        if (i < maxRetries - 1 && isRateLimit) {
           const delay = baseDelay * Math.pow(2, i);
-          const errorType = isRateLimit ? "Rate limited (429)" : "Network error";
-          console.warn(`${errorType}, retrying in ${delay}ms... (attempt ${i + 1}/${maxRetries})`);
+          console.warn(`Rate limited (429) in getLogs, retrying in ${delay}ms... (attempt ${i + 1}/${maxRetries})`);
           await new Promise((resolve) => setTimeout(resolve, delay));
           continue;
         }
-        if ((!isRateLimit && !isNetworkError) || i === maxRetries - 1) {
-          // For network errors on last retry, log but don't crash the app
-          if (isNetworkError && i === maxRetries - 1) {
-            console.warn("Network error after max retries, skipping this fetch:", error?.message);
-            // Return empty result instead of throwing to prevent app crash
-            return [] as T;
-          }
+        if (!isRateLimit || i === maxRetries - 1) {
           throw error;
         }
       }

@@ -16,7 +16,6 @@ import CrossChainDecisionLog from "@/components/CrossChainDecisionLog";
 import CrossChainMoveVisualizer from "@/components/CrossChainMoveVisualizer";
 import SmartCrossChainChecker from "@/components/SmartCrossChainChecker";
 import SimulatedBridge from "@/components/SimulatedBridge";
-import UnifiedBalanceDisplay from "@/components/UnifiedBalanceDisplay";
 import { useVault } from "@/hooks/useVault";
 import { usePools } from "@/hooks/usePools";
 import { useOracle } from "@/hooks/useOracle";
@@ -27,46 +26,59 @@ import { useAccount } from "wagmi";
 
 export default function Home() {
   const { isConnected } = useAccount();
-  const { refetchMode, refetchVaultBalance, refetchUnifiedBalance, refetchRiskProfile } = useVault();
+  const { refetchMode, refetchVaultBalance, refetchRiskProfile } = useVault();
   const { refetchAll } = usePools();
   const { refetchPrice } = useOracle();
   const { refetchBalance } = useUSDC();
   const { refetch: refetchModeHistory } = useModeHistory();
   const { refetchChainData, refetchBestChain } = useCrossChainArb();
 
-  // Auto-refresh - significantly reduced frequency to avoid rate limiting
+  // Auto-refresh every 4 seconds (vault data)
+  // Chain data refreshes less frequently to avoid rate limiting
   useEffect(() => {
     if (!isConnected) return;
 
-    // Main data refresh - significantly reduced to avoid rate limiting
     const interval = setInterval(() => {
       refetchMode();
       refetchVaultBalance();
-      refetchUnifiedBalance();
       refetchAll();
       refetchPrice();
       refetchBalance();
+      // Mode history refreshes every 20 seconds to avoid rate limiting
+      // refetchModeHistory is called separately below
       refetchRiskProfile();
-    }, 60000); // Increased from 20s to 60s (1 minute)
+      // Chain data refreshes every 15 seconds to avoid rate limiting
+      // refetchChainData and refetchBestChain are called separately below
+    }, 4000);
 
-    // Chain data - DISABLED: Chain data fetching makes too many calls (20+ per fetch)
-    // Users can manually refresh via ChainDataManager component
-    // const chainDataInterval = setInterval(() => {
-    //   refetchChainData();
-    //   refetchBestChain();
-    // }, 300000); // 5 minutes - DISABLED to avoid rate limiting
+    // Separate interval for chain data (much less frequent to avoid rate limiting)
+    const chainDataInterval = setInterval(() => {
+      refetchChainData();
+      refetchBestChain();
+    }, 30000); // Increased from 15s to 30s
 
-    // Mode history - less frequent
+    // Separate interval for mode history (less frequent to avoid rate limiting)
     const modeHistoryInterval = setInterval(() => {
       refetchModeHistory();
-    }, 120000); // Increased from 60s to 120s (2 minutes)
+    }, 20000);
 
     return () => {
       clearInterval(interval);
-      // clearInterval(chainDataInterval); // Disabled
+      clearInterval(chainDataInterval);
       clearInterval(modeHistoryInterval);
     };
-  }, [isConnected]); // Only depend on isConnected - refetch functions are stable
+  }, [
+    isConnected,
+    refetchMode,
+    refetchVaultBalance,
+    refetchAll,
+    refetchPrice,
+    refetchBalance,
+    refetchModeHistory,
+    refetchRiskProfile,
+    refetchChainData,
+    refetchBestChain,
+  ]);
 
   return (
     <div className="min-h-screen bg-[#fafafa]">
@@ -92,8 +104,6 @@ export default function Home() {
           </div>
         ) : (
           <div className="space-y-12">
-            {/* Unified Balance Display - Prominent at Top */}
-            <UnifiedBalanceDisplay />
             <VaultDashboard />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <ActionsPanel />

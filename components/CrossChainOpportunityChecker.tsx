@@ -52,34 +52,18 @@ export default function CrossChainOpportunityChecker() {
           error?.message?.includes("Too Many Requests") ||
           error?.cause?.status === 429 ||
           error?.shortMessage?.includes("429");
-
-        // Check for network errors (ERR_NETWORK_CHANGED, connection issues)
-        const isNetworkError =
-          error?.message?.includes("ERR_NETWORK_CHANGED") ||
-          error?.message?.includes("network") ||
-          error?.message?.includes("Network") ||
-          error?.message?.includes("fetch") ||
-          error?.message?.includes("Failed to fetch") ||
-          error?.name === "HttpRequestError";
         
-        // If it's a 429 (rate limit) or network error, retry with longer backoff
-        if (i < maxRetries - 1 && (isRateLimit || isNetworkError)) {
+        // If it's a 429 (rate limit) error, retry with longer backoff
+        if (i < maxRetries - 1 && isRateLimit) {
           // Exponential backoff: 2s, 4s, 8s, 16s, 32s
           const delay = baseDelay * Math.pow(2, i);
-          const errorType = isRateLimit ? "Rate limited (429)" : "Network error";
-          console.warn(`${errorType}, retrying in ${delay}ms... (attempt ${i + 1}/${maxRetries})`);
+          console.warn(`Rate limited (429) in getLogs, retrying in ${delay}ms... (attempt ${i + 1}/${maxRetries})`);
           await new Promise((resolve) => setTimeout(resolve, delay));
           continue;
         }
         
-        // If it's not a retryable error or we've exhausted retries, handle gracefully
-        if ((!isRateLimit && !isNetworkError) || i === maxRetries - 1) {
-          // For network errors on last retry, log but don't crash the app
-          if (isNetworkError && i === maxRetries - 1) {
-            console.warn("Network error after max retries, skipping this fetch:", error?.message);
-            // Return empty result instead of throwing to prevent app crash
-            return [] as T;
-          }
+        // If it's not a rate limit error or we've exhausted retries, throw
+        if (!isRateLimit || i === maxRetries - 1) {
           throw error;
         }
       }
@@ -173,9 +157,7 @@ export default function CrossChainOpportunityChecker() {
         // Wait a bit for the transaction to be mined
         await new Promise((resolve) => setTimeout(resolve, 3000));
         await refetchBestChain();
-        // Don't refetch chain data automatically - it makes too many RPC calls
-        // Users can manually refresh via ChainDataManager if needed
-        // await refetchChainData();
+        await refetchChainData();
         alert("Cross-chain check completed!");
       } catch (error: any) {
         if (error.message?.includes("function") || error.message?.includes("not found")) {

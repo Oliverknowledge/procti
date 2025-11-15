@@ -274,14 +274,11 @@ export const useChainBalances = () => {
   }, [publicClient, currentBlock, address, activeChain, supportedChains, vaultBalance]);
 
   useEffect(() => {
-    if (!publicClient || !currentBlock || !address || !activeChain) return;
-    
     calculateChainBalances();
-    // Reduced frequency to avoid rate limiting (60 seconds instead of 30)
-    const interval = setInterval(calculateChainBalances, 60000);
+    // Reduced frequency to avoid rate limiting (30 seconds instead of 10)
+    const interval = setInterval(calculateChainBalances, 30000);
     return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [publicClient, currentBlock, address, activeChain]); // Only depend on essential values
+  }, [calculateChainBalances]);
 
   return {
     chainBalances,

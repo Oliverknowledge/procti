@@ -119,13 +119,10 @@ export default function CrossChainDecisionLog() {
   };
 
   useEffect(() => {
-    if (!publicClient || !currentBlock) return;
-    
     fetchDecisions();
-    const interval = setInterval(fetchDecisions, 60000); // Increased from 20s to 60s
+    const interval = setInterval(fetchDecisions, 20000);
     return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [publicClient, currentBlock]); // fetchDecisions is stable
+  }, [publicClient, currentBlock]);
 
   const getReasonColor = (reason: string) => {
     if (reason.toLowerCase().includes("too risky") || reason.toLowerCase().includes("risky")) {

@@ -27,18 +27,23 @@ const arcTestnet = defineChain({
     },
   },
   testnet: true,
-  // Explicitly disable EIP-1559 to use legacy gasPrice
-  fees: {
-    baseFeeMultiplier: undefined,
-  },
 });
 
-// Add mainnet chains for CCTP support
+// Add mainnet chains
 const ethereum = defineChain({
   id: 1,
   name: "Ethereum",
   nativeCurrency: { decimals: 18, name: "Ether", symbol: "ETH" },
-  rpcUrls: { default: { http: ["https://eth.llamarpc.com"] } },
+  rpcUrls: { 
+    default: { 
+      http: [
+        "https://eth.llamarpc.com",
+        "https://ethereum-rpc.publicnode.com",
+        "https://1rpc.io/eth",
+        "https://rpc.ankr.com/eth"
+      ] 
+    } 
+  },
   blockExplorers: { default: { name: "Etherscan", url: "https://etherscan.io" } },
 });
 
@@ -46,7 +51,16 @@ const base = defineChain({
   id: 8453,
   name: "Base",
   nativeCurrency: { decimals: 18, name: "Ether", symbol: "ETH" },
-  rpcUrls: { default: { http: ["https://mainnet.base.org"] } },
+  rpcUrls: { 
+    default: { 
+      http: [
+        "https://mainnet.base.org",
+        "https://base.gateway.tenderly.co",
+        "https://base-rpc.publicnode.com",
+        "https://1rpc.io/base"
+      ] 
+    } 
+  },
   blockExplorers: { default: { name: "Basescan", url: "https://basescan.org" } },
 });
 
@@ -66,7 +80,7 @@ const optimism = defineChain({
   blockExplorers: { default: { name: "Optimism Explorer", url: "https://optimistic.etherscan.io" } },
 });
 
-// CCTP-Supported Testnets
+// Testnets
 const ethereumSepolia = defineChain({
   id: 11155111,
   name: "Ethereum Sepolia",
@@ -112,7 +126,7 @@ const config = getDefaultConfig({
     base, 
     arbitrum, 
     optimism,
-    // CCTP testnets
+    // Testnets
     ethereumSepolia,
     baseSepolia,
     arbitrumSepolia,
@@ -121,20 +135,7 @@ const config = getDefaultConfig({
   ssr: true,
 });
 
-// Configure QueryClient to disable aggressive auto-refetching
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      // Disable auto-refetching to reduce RPC calls
-      refetchOnWindowFocus: false,
-      refetchOnMount: false,
-      refetchOnReconnect: false,
-      refetchInterval: false, // Disable automatic polling
-      staleTime: 30000, // Consider data fresh for 30 seconds
-      gcTime: 60000, // Keep unused data for 60 seconds
-    },
-  },
-});
+const queryClient = new QueryClient();
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (

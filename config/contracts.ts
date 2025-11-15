@@ -24,7 +24,7 @@ export const contractsConfig = {
     abi: SafePoolABI.abi,
   },
   crossChainArb: {
-    address: "0x7A612459095bBe3F579068CDE982aa91C57919A6" as `0x${string}`,
+    address: "0xfe9d856E1f3BA56C462DF56B27b8863f1ff700B9" as `0x${string}`,
     abi: CrossChainArbitrageABI.abi,
   },
 };

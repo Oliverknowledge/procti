@@ -116,16 +116,14 @@ export const useOracleSync = () => {
     }, 500);
 
     return () => clearTimeout(timeoutId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeChain, publicClient]); // writeContract is stable, don't include it
+  }, [activeChain, publicClient, writeContract]);
 
   // Refetch price when transaction is confirmed
   useEffect(() => {
     if (isConfirmed) {
       refetchPrice();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isConfirmed]); // refetchPrice is stable
+  }, [isConfirmed, refetchPrice]);
 
   return {
     isSyncing: isSyncing.current || isConfirming,

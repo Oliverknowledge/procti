@@ -7,7 +7,7 @@ import { useUSDC } from "@/hooks/useUSDC";
 import { useCrossChainArb } from "@/hooks/useCrossChainArb";
 import { usePublicClient } from "wagmi";
 import { contractsConfig } from "@/config/contracts";
-import { parseUnits, formatUnits } from "viem";
+import { parseUnits } from "viem";
 
 export default function ActionsPanel() {
   const [depositAmount, setDepositAmount] = useState("");
@@ -19,7 +19,7 @@ export default function ActionsPanel() {
   const { activeChain } = useCrossChainArb();
   const publicClient = usePublicClient();
   const { setPrice, isPending: oraclePending } = useOracle();
-  const { balance: usdcBalance, approve, isPending: approvePending, checkAllowance, refetchBalance } = useUSDC();
+  const { balance: usdcBalance, approve, isPending: approvePending } = useUSDC();
 
   const handleDeposit = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
@@ -46,70 +46,23 @@ export default function ActionsPanel() {
 
     try {
       setIsProcessing(true);
-      
-      // Step 1: Check and approve USDC spending
-      try {
-        // Check current allowance first
-        if (checkAllowance) {
-          const currentAllowance = await checkAllowance(contractsConfig.vault.address);
-          const amountWei = parseUnits(depositAmount, 6);
-          console.log("Current allowance:", formatUnits(currentAllowance, 6), "USDC");
-          console.log("Required amount:", depositAmount, "USDC");
-          
-          if (currentAllowance < amountWei) {
-            console.log("Insufficient allowance, requesting approval...");
-            // This should trigger wallet popup
-            await approve(contractsConfig.vault.address, depositAmount);
-          } else {
-            console.log("Allowance sufficient, skipping approval");
-          }
-        } else {
-          // Fallback: always try to approve
-          await approve(contractsConfig.vault.address, depositAmount);
-        }
-      } catch (approveError: any) {
-        console.error("Approval error:", approveError);
-        if (approveError?.message?.includes("rejected") || approveError?.message?.includes("denied")) {
-          alert("Approval was rejected. Please approve the transaction in your wallet to continue.");
-          return;
-        }
-        if (approveError?.message?.includes("hash not received")) {
-          alert(
-            "Approval transaction not started.\n\n" +
-            "Please check:\n" +
-            "1. Your wallet is connected\n" +
-            "2. Your wallet popup is not blocked\n" +
-            "3. Try refreshing the page and connecting your wallet again\n\n" +
-            "Then try depositing again."
-          );
-          return;
-        }
-        throw approveError;
-      }
-      
-      // Step 2: Deposit (after approval is confirmed)
+      // First approve USDC spending
+      await approve(contractsConfig.vault.address, depositAmount);
+      // Wait a bit for approval to be confirmed
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      // Then deposit
       await deposit(depositAmount);
       setDepositAmount("");
-      
-      // Refetch balances after successful deposit
-      refetchVaultBalance();
-      refetchBalance();
     } catch (error: any) {
       console.error("Deposit error:", error);
       const errorMessage = error.message || "Unknown error";
-      if (errorMessage.includes("insufficient balance") || errorMessage.includes("exceeds allowance")) {
+      if (errorMessage.includes("insufficient balance")) {
         alert(
-          `Deposit failed!\n\n` +
-          `Error: ${errorMessage}\n\n` +
+          `Insufficient USDC balance!\n\n` +
           `You have: ${availableBalance.toFixed(2)} USDC\n` +
           `Trying to deposit: ${depositValue.toFixed(2)} USDC\n\n` +
-          `Make sure you have approved the vault to spend your USDC.`
-        );
-      } else if (errorMessage.includes("exceeds allowance")) {
-        alert(
-          `Insufficient allowance!\n\n` +
-          `The vault needs approval to transfer your USDC.\n` +
-          `Please try depositing again - the approval step should happen automatically.`
+          `You need to get USDC tokens first. The USDC contract address is:\n` +
+          `0x3600000000000000000000000000000000000000`
         );
       } else {
         alert(`Deposit failed: ${errorMessage}`);
