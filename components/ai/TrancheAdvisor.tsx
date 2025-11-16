@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAIAdvisor } from "@/hooks/useAIAdvisor";
+import { useAgenticAdvisor } from "@/hooks/useAgenticAdvisor";
 import type { UserAnswers } from "@/lib/ai/advisorPrompt";
 import AdvisorQuestions from "./AdvisorQuestions";
 import AdvisorResult from "./AdvisorResult";
@@ -18,13 +19,19 @@ interface TrancheAdvisorProps {
  */
 export default function TrancheAdvisor({ onUseRecommendation }: TrancheAdvisorProps) {
   const { getRecommendation, isLoading, error, result, reset } = useAIAdvisor();
+  const { getInitialRecommendation, startMonitoring } = useAgenticAdvisor();
 
   const handleSubmit = async (answers: UserAnswers) => {
-    // Check for API key in localStorage or use mock (rule-based fallback)
-    const storedKey = typeof window !== "undefined" ? localStorage.getItem("openai_api_key") : null;
-    const keyToUse = storedKey || undefined;
+    // API key is now read from .env file (NEXT_PUBLIC_OPENAI_API_KEY)
+    await getRecommendation(answers);
     
-    await getRecommendation(answers, keyToUse);
+    // Also initialize agentic advisor with user answers
+    await getInitialRecommendation(answers);
+    
+    // Start proactive monitoring after a brief delay
+    setTimeout(() => {
+      startMonitoring();
+    }, 2000);
   };
 
   const handleReset = () => {
@@ -71,7 +78,11 @@ export default function TrancheAdvisor({ onUseRecommendation }: TrancheAdvisorPr
         </div>
       ) : (
         <div>
-          <AdvisorResult result={result} onUseRecommendation={onUseRecommendation} />
+          <AdvisorResult 
+            result={result} 
+            onUseRecommendation={onUseRecommendation}
+            showAgentPanel={true}
+          />
           
           <div className="mt-6 pt-6 border-t border-gray-200">
             <button

@@ -74,6 +74,24 @@ export const useVault = () => {
         abi: contractsConfig.vault.abi,
         functionName: "rebalance",
       });
+      
+      // Wait for transaction confirmation using the hash from the hook's data
+      // Note: writeContract doesn't return hash directly, it's stored in the hook's data
+      // The useWaitForTransactionReceipt hook will handle confirmation
+      if (publicClient && hash) {
+        try {
+          console.log("Waiting for rebalance transaction confirmation...", hash);
+          const receipt = await publicClient.waitForTransactionReceipt({ 
+            hash,
+            timeout: 120_000 // 2 minutes timeout
+          });
+          console.log("Rebalance transaction confirmed:", receipt);
+          return receipt;
+        } catch (waitErr) {
+          console.error("Error waiting for rebalance confirmation:", waitErr);
+        }
+      }
+      return;
     } catch (err) {
       console.error("Rebalance error:", err);
       throw err;

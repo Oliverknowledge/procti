@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useProctiContract } from "@/hooks/useProctiContract";
 import { useTrancheData } from "@/hooks/useTrancheData";
 import { fetchChainData } from "@/lib/services/chainDataFetcher";
@@ -28,6 +28,14 @@ export default function EpochPanel() {
   const mezzDelta = (delta * 100) / 1000;
   const juniorDelta = (delta * 200) / 1000;
 
+  // Check if loss waterfall will trigger
+  const securityValue = parseFloat(securityScore);
+  const willTriggerLoss = securityValue < 3000;
+  const lossPercentage = willTriggerLoss ? ((3000 - securityValue) / 3000) * 100 : 0;
+
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [updateStatus, setUpdateStatus] = useState<string | null>(null);
+
   const handleUpdateEpoch = async () => {
     const yieldValue = parseInt(yieldScore);
     const securityValue = parseInt(securityScore);
@@ -38,13 +46,32 @@ export default function EpochPanel() {
       return;
     }
 
+    setIsUpdating(true);
+    setUpdateStatus("Preparing epoch update...");
+
     try {
+      setUpdateStatus("Submitting transaction...");
       await updateEpoch(yieldValue, securityValue, liquidityValue);
+      
+      setUpdateStatus("Waiting for confirmation...");
+      // Wait for transaction confirmation
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+      
+      setUpdateStatus("Refreshing data...");
+      await refetchAll();
+      
+      setUpdateStatus("✅ Epoch updated successfully!");
       setTimeout(() => {
-        refetchAll();
-      }, 3000);
+        setUpdateStatus(null);
+        setIsUpdating(false);
+      }, 2000);
     } catch (err) {
       console.error("Update epoch failed:", err);
+      setUpdateStatus("❌ Update failed. Please try again.");
+      setTimeout(() => {
+        setUpdateStatus(null);
+        setIsUpdating(false);
+      }, 3000);
     }
   };
 
@@ -139,22 +166,43 @@ export default function EpochPanel() {
           </p>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Security Score (0-10000)
-          </label>
-          <input
-            type="number"
-            value={securityScore}
-            onChange={(e) => setSecurityScore(e.target.value)}
-            min="0"
-            max="10000"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]"
-          />
-          <p className="text-xs text-gray-500 mt-1">
-            Current: {parseFloat(securityScore) / 100}% (Loss threshold: 30%)
-          </p>
-        </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Security Score (0-10000)
+              </label>
+              <input
+                type="number"
+                value={securityScore}
+                onChange={(e) => setSecurityScore(e.target.value)}
+                min="0"
+                max="10000"
+                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+                  willTriggerLoss
+                    ? "border-red-500 focus:ring-red-500 bg-red-50"
+                    : "border-gray-300 focus:ring-[#8B5CF6]"
+                }`}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Current: {parseFloat(securityScore) / 100}% (Loss threshold: 30%)
+              </p>
+              {willTriggerLoss && (
+                <div className="mt-2 p-3 bg-red-50 border-2 border-red-300 rounded-lg">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-red-600 text-lg">⚠️</span>
+                    <span className="text-sm font-semibold text-red-900">
+                      Loss Waterfall Will Trigger!
+                    </span>
+                  </div>
+                  <p className="text-xs text-red-800">
+                    Security score ({securityValue / 100}%) is below threshold (30%). 
+                    Estimated loss: <strong>{lossPercentage.toFixed(1)}%</strong> of total vault value.
+                  </p>
+                  <p className="text-xs text-red-700 mt-1">
+                    Loss will hit: <strong>Junior first</strong> → Mezz → Senior
+                  </p>
+                </div>
+              )}
+            </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -173,42 +221,95 @@ export default function EpochPanel() {
           </p>
         </div>
 
-        <div className="bg-gray-50 rounded-md p-3 space-y-2">
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-600">Combined Score:</span>
-            <span className="font-medium">{combinedScore.toFixed(2)}</span>
+        <div className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-lg border-2 border-purple-200 p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-gray-700">Combined Score:</span>
+            <span className="text-lg font-bold text-gray-900">{combinedScore.toFixed(2)}</span>
           </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-600">Delta:</span>
-            <span className={`font-medium ${delta >= 0 ? "text-green-600" : "text-red-600"}`}>
+          <div className="flex items-center justify-between p-2 bg-white rounded border border-gray-200">
+            <span className="text-sm font-medium text-gray-700">Global Delta:</span>
+            <span className={`text-xl font-bold ${delta >= 0 ? "text-green-600" : "text-red-600"}`}>
               {delta >= 0 ? "+" : ""}
               {delta.toFixed(2)}
             </span>
           </div>
-          <div className="pt-2 border-t border-gray-200 space-y-1">
-            <div className="flex justify-between text-xs">
-              <span className="text-gray-600">Senior Delta:</span>
-              <span className={seniorDelta >= 0 ? "text-green-600" : "text-red-600"}>
-                {seniorDelta >= 0 ? "+" : ""}
-                {seniorDelta.toFixed(2)}
-              </span>
-            </div>
-            <div className="flex justify-between text-xs">
-              <span className="text-gray-600">Mezz Delta:</span>
-              <span className={mezzDelta >= 0 ? "text-green-600" : "text-red-600"}>
-                {mezzDelta >= 0 ? "+" : ""}
-                {mezzDelta.toFixed(2)}
-              </span>
-            </div>
-            <div className="flex justify-between text-xs">
-              <span className="text-gray-600">Junior Delta:</span>
-              <span className={juniorDelta >= 0 ? "text-green-600" : "text-red-600"}>
-                {juniorDelta >= 0 ? "+" : ""}
-                {juniorDelta.toFixed(2)}
-              </span>
+          <div className="pt-2 border-t border-purple-200 space-y-2">
+            <div className="text-xs font-semibold text-gray-700 mb-2">Tranche Deltas:</div>
+            <div className="grid grid-cols-3 gap-2">
+              <div className="bg-white rounded p-2 border border-green-200">
+                <div className="text-xs text-gray-600 mb-1">Senior</div>
+                <div className={`text-sm font-bold ${seniorDelta >= 0 ? "text-green-600" : "text-red-600"}`}>
+                  {seniorDelta >= 0 ? "+" : ""}
+                  {seniorDelta.toFixed(2)}
+                </div>
+              </div>
+              <div className="bg-white rounded p-2 border border-yellow-200">
+                <div className="text-xs text-gray-600 mb-1">Mezz</div>
+                <div className={`text-sm font-bold ${mezzDelta >= 0 ? "text-green-600" : "text-red-600"}`}>
+                  {mezzDelta >= 0 ? "+" : ""}
+                  {mezzDelta.toFixed(2)}
+                </div>
+              </div>
+              <div className="bg-white rounded p-2 border border-red-200">
+                <div className="text-xs text-gray-600 mb-1">Junior</div>
+                <div className={`text-sm font-bold ${juniorDelta >= 0 ? "text-green-600" : "text-red-600"}`}>
+                  {juniorDelta >= 0 ? "+" : ""}
+                  {juniorDelta.toFixed(2)}
+                </div>
+              </div>
             </div>
           </div>
+          {delta !== 0 && (
+            <div className="mt-2 p-2 bg-white rounded border border-gray-200">
+              <div className="text-xs text-gray-600 mb-1">Impact Preview:</div>
+              <div className="text-xs text-gray-700">
+                {delta > 0 ? (
+                  <span className="text-green-700">
+                    📈 All tranches will gain value. Junior gains most ({juniorDelta.toFixed(2)}), Senior gains least ({seniorDelta.toFixed(2)}).
+                  </span>
+                ) : (
+                  <span className="text-red-700">
+                    📉 All tranches will lose value. Junior loses most ({juniorDelta.toFixed(2)}), Senior loses least ({seniorDelta.toFixed(2)}).
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
         </div>
+
+        {/* Update Status */}
+        {updateStatus && (
+          <div
+            className={`rounded-lg p-3 ${
+              updateStatus.includes("✅")
+                ? "bg-green-50 border border-green-200"
+                : updateStatus.includes("❌")
+                ? "bg-red-50 border border-red-200"
+                : "bg-blue-50 border border-blue-200"
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              {updateStatus.includes("✅") ? (
+                <span className="text-green-600">✅</span>
+              ) : updateStatus.includes("❌") ? (
+                <span className="text-red-600">❌</span>
+              ) : (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+              )}
+              <p
+                className={`text-sm ${
+                  updateStatus.includes("✅")
+                    ? "text-green-800"
+                    : updateStatus.includes("❌")
+                    ? "text-red-800"
+                    : "text-blue-800"
+                }`}
+              >
+                {updateStatus}
+              </p>
+            </div>
+          </div>
+        )}
 
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-md p-3">
@@ -218,10 +319,10 @@ export default function EpochPanel() {
 
         <button
           onClick={handleUpdateEpoch}
-          disabled={isPending || isConfirming}
+          disabled={isPending || isConfirming || isUpdating}
           className="w-full bg-[#8B5CF6] text-white py-2.5 px-4 rounded-lg hover:bg-[#7C3AED] disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium"
         >
-          {isPending || isConfirming ? "Processing..." : "Update Epoch"}
+          {isPending || isConfirming || isUpdating ? "Processing..." : "🚀 Update Epoch"}
         </button>
       </div>
     </div>

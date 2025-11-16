@@ -13,13 +13,16 @@ export const useAIAdvisor = () => {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<AdvisorResponse | null>(null);
 
-  const getRecommendation = async (answers: UserAnswers, apiKey?: string) => {
+  const getRecommendation = async (answers: UserAnswers) => {
     setIsLoading(true);
     setError(null);
     setResult(null);
 
     try {
       const prompt = buildAdvisorPrompt(answers);
+
+      // Get API key from environment variable
+      const apiKey = process.env.NEXT_PUBLIC_OPENAI_API_KEY;
 
       // Use OpenAI API (or fallback to a mock if no key provided)
       if (!apiKey) {
@@ -66,14 +69,22 @@ export const useAIAdvisor = () => {
           messages: [
             {
               role: "system",
-              content: "You are a financial advisor for DeFi structured products. Always return valid JSON only, no markdown formatting.",
+              content: `You are an expert financial advisor specializing in DeFi structured products, risk management, and portfolio optimization. 
+              
+Your expertise includes:
+- Structured finance and tranche mechanics
+- Risk-return analysis and portfolio theory
+- DeFi protocols and yield strategies
+- Behavioral finance and investor psychology
+
+Always provide sophisticated, informed financial analysis. Return ONLY valid JSON (no markdown, no code blocks, no explanations outside JSON).`,
             },
             {
               role: "user",
               content: prompt,
             },
           ],
-          temperature: 0.7,
+          temperature: 0.6, // Slightly lower for more consistent, analytical responses
           response_format: { type: "json_object" },
         }),
       });

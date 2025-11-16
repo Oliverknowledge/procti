@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { useVault } from "./useVault";
 import { useOracle } from "./useOracle";
 import { useCrossChainArb } from "./useCrossChainArb";
+import { usePools } from "./usePools";
 import { usePublicClient } from "wagmi";
 import { contractsConfig } from "@/config/contracts";
 import { formatUnits } from "viem";
@@ -15,6 +16,7 @@ export const useAutoRebalance = () => {
   const { rebalance, rebalanceWithActiveChainPrice, vaultBalance, riskProfileString } = useVault();
   const { priceFormatted, refetchPrice } = useOracle();
   const { activeChain } = useCrossChainArb();
+  const { refetchYieldPool, refetchSafePool } = usePools();
   const publicClient = usePublicClient();
   const lastPrice = useRef<string | null>(null);
   const lastRebalancedPrice = useRef<string | null>(null);
@@ -93,6 +95,12 @@ export const useAutoRebalance = () => {
         // Mark this price and risk profile as rebalanced
         lastRebalancedPrice.current = priceFormatted;
         console.log(`Auto-rebalance complete for price: ${priceFormatted}, risk profile: ${riskProfileString}`);
+        
+        // Refetch pool balances after rebalancing to show updated values
+        setTimeout(() => {
+          refetchYieldPool();
+          refetchSafePool();
+        }, 2000); // Wait 2 seconds for transaction to be mined
       } catch (err) {
         console.error("Error in auto-rebalance:", err);
         // Don't mark as rebalanced if there was an error, so it will retry
@@ -112,7 +120,7 @@ export const useAutoRebalance = () => {
     }, 1000);
 
     return () => clearTimeout(timeoutId);
-  }, [priceFormatted, riskProfileString, activeChain, publicClient, vaultBalance, rebalance, rebalanceWithActiveChainPrice]);
+  }, [priceFormatted, riskProfileString, activeChain, publicClient, vaultBalance, rebalance, rebalanceWithActiveChainPrice, refetchYieldPool, refetchSafePool]);
 
   return {
     isRebalancing: isRebalancing.current,

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { usePublicClient, useAccount } from "wagmi";
 import { TRANCHE_VAULT_ADDRESS } from "@/lib/procti/addresses";
 import { TRANCHE_VAULT_ABI } from "@/lib/procti/abi";
-import { formatUnits } from "viem";
+import { formatUnits, decodeEventLog } from "viem";
 
 /**
  * Event types
@@ -162,7 +162,7 @@ export const useEvents = () => {
 
             // Try to decode each event type
             try {
-              const decoded = publicClient.decodeEventLog({
+              const decoded = decodeEventLog({
                 abi: TRANCHE_VAULT_ABI,
                 data: log.data,
                 topics: log.topics,

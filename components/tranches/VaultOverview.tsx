@@ -22,7 +22,12 @@ export default function VaultOverview() {
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
-      <h2 className="text-xl font-semibold text-gray-900 mb-6">Vault Overview</h2>
+      <div className="mb-4">
+        <h2 className="text-xl font-semibold text-gray-900">Tranche Vault Overview</h2>
+        <p className="text-sm text-gray-600 mt-1">
+          Structured vault with three risk layers (Senior/Mezzanine/Junior). Uses virtual values and share-based accounting.
+        </p>
+      </div>
 
       <div className="space-y-6">
         {/* Total Value */}
@@ -137,37 +142,6 @@ export default function VaultOverview() {
           </div>
         </div>
 
-        {/* Info Box */}
-        <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-          <h4 className="text-sm font-medium text-purple-900 mb-2">How It Works</h4>
-          <ul className="text-xs text-purple-800 space-y-1">
-            <li>• Senior: Low risk, low yield (5% of delta)</li>
-            <li>• Mezzanine: Medium risk/yield (10% of delta)</li>
-            <li>• Junior: High risk, first-loss (20% of delta)</li>
-            <li>• Losses hit Junior first, then Mezz, then Senior</li>
-          </ul>
-        </div>
-
-        {/* Fee Information */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <h4 className="text-sm font-medium text-blue-900 mb-2">💰 Fee System</h4>
-          <ul className="text-xs text-blue-800 space-y-1">
-            <li>• Deposit Fee: 0.5% (goes to reserve pool)</li>
-            <li>• Withdrawal Fee: 0.5% (goes to reserve pool)</li>
-            <li>• Time-Based Yield: 5% APY accrues to reserve</li>
-            <li>• Reserve Pool: Backs virtual gains and enables full withdrawals</li>
-          </ul>
-        </div>
-
-        {/* Important Disclaimer */}
-        <div className="bg-yellow-50 border border-yellow-300 rounded-lg p-4">
-          <h4 className="text-sm font-medium text-yellow-900 mb-2">⚠️ How It Works Now</h4>
-          <p className="text-xs text-yellow-800">
-            <strong>Fees and time-based yield generate real USDC</strong> that backs virtual gains. 
-            The reserve pool grows from fees (0.5% on deposits/withdrawals) and time-based yield (5% APY). 
-            This allows the system to pay out more than initial deposits when the reserve pool is sufficient.
-          </p>
-        </div>
       </div>
     </div>
   );

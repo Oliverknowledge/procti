@@ -18,8 +18,8 @@ export default function AdvisorPage() {
   const router = useRouter();
 
   const handleUseRecommendation = (tranche: Tranche) => {
-    // Navigate to tranches page with the recommended tranche as URL param
-    router.push(`/tranches?tranche=${tranche}`);
+    // Navigate to root page with the recommended tranche as URL param
+    router.push(`/?tranche=${tranche}`);
   };
 
   return (
@@ -33,7 +33,7 @@ export default function AdvisorPage() {
               <p className="text-sm text-gray-600 mt-1">Get personalized tranche recommendations</p>
             </div>
             <Link
-              href="/tranches"
+              href="/"
               className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors text-sm"
             >
               ← Back to Vault

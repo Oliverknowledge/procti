@@ -3,10 +3,13 @@
 import { useState } from "react";
 import type { AdvisorResponse } from "@/lib/ai/advisorPrompt";
 import { Tranche } from "@/lib/procti/addresses";
+import AgentActionPanel from "./AgentActionPanel";
+import AgenticAdvisorPanel from "./AgenticAdvisorPanel";
 
 interface AdvisorResultProps {
   result: AdvisorResponse;
   onUseRecommendation?: (tranche: Tranche) => void;
+  showAgentPanel?: boolean;
 }
 
 /**
@@ -14,11 +17,9 @@ interface AdvisorResultProps {
  * @description Displays AI recommendation with allocation breakdown
  * @notice Isolated component - does NOT modify existing deposit panel
  */
-export default function AdvisorResult({ result, onUseRecommendation }: AdvisorResultProps) {
-  const [apiKey, setApiKey] = useState(
-    typeof window !== "undefined" ? localStorage.getItem("openai_api_key") || "" : ""
-  );
-  const [showApiKeyInput, setShowApiKeyInput] = useState(false);
+export default function AdvisorResult({ result, onUseRecommendation, showAgentPanel = false }: AdvisorResultProps) {
+  // API key is now read from .env file (NEXT_PUBLIC_OPENAI_API_KEY)
+  const hasApiKey = !!process.env.NEXT_PUBLIC_OPENAI_API_KEY;
 
   // Map tranche names to enum values
   const trancheMap: Record<string, Tranche> = {
@@ -152,40 +153,53 @@ export default function AdvisorResult({ result, onUseRecommendation }: AdvisorRe
         </div>
       </div>
 
-      {/* API Key Input (Optional) */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <div className="flex items-center justify-between mb-2">
-          <h4 className="text-sm font-medium text-blue-900">Use Real AI (Optional)</h4>
-          <button
-            onClick={() => setShowApiKeyInput(!showApiKeyInput)}
-            className="text-xs text-blue-600 hover:text-blue-800"
-          >
-            {showApiKeyInput ? "Hide" : "Show"}
-          </button>
+      {/* AI Agent Action Panel - New addition */}
+      {showAgentPanel && (
+        <div className="mt-6">
+          <AgentActionPanel recommendation={result} />
         </div>
-        {showApiKeyInput && (
-          <div className="mt-3">
-            <p className="text-xs text-blue-800 mb-2">
-              Enter your OpenAI API key to use GPT-4 instead of the rule-based advisor:
-            </p>
-            <input
-              type="password"
-              value={apiKey}
-              onChange={(e) => {
-                setApiKey(e.target.value);
-                if (typeof window !== "undefined") {
-                  localStorage.setItem("openai_api_key", e.target.value);
-                }
-              }}
-              placeholder="sk-..."
-              className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B5CF6] text-sm"
-            />
-            <p className="text-xs text-blue-700 mt-2">
-              Your API key is stored locally in your browser and never sent to our servers.
-            </p>
+      )}
+
+      {/* Agentic Advisor Panel - Proactive monitoring */}
+      {showAgentPanel && (
+        <div className="mt-6">
+          <AgenticAdvisorPanel />
+        </div>
+      )}
+
+      {/* API Key Status */}
+      {hasApiKey ? (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+          <div className="flex items-center gap-2">
+            <span className="text-green-600">✅</span>
+            <div>
+              <p className="text-xs font-semibold text-green-900 mb-1">
+                AI-Powered Analysis Enabled
+              </p>
+              <p className="text-xs text-green-800">
+                Using GPT-4o-mini for sophisticated financial analysis. The AI considers your risk profile, 
+                time horizon, experience level, and DeFi market dynamics to provide informed recommendations.
+              </p>
+            </div>
           </div>
-        )}
-      </div>
+        </div>
+      ) : (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <div className="flex items-center gap-2">
+            <span className="text-yellow-600">⚠️</span>
+            <div>
+              <p className="text-xs font-semibold text-yellow-900 mb-1">
+                Using Rule-Based Advisor (Limited Intelligence)
+              </p>
+              <p className="text-xs text-yellow-800">
+                Add <code className="bg-yellow-100 px-1 rounded">NEXT_PUBLIC_OPENAI_API_KEY</code> to your 
+                <code className="bg-yellow-100 px-1 rounded">.env</code> file to enable AI-powered financial analysis with GPT-4.
+                Currently using simple rule-based logic instead of sophisticated AI analysis.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

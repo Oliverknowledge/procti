@@ -20,28 +20,71 @@ export default function WithdrawPanel() {
   const availableShares = position.shares;
 
   const handleWithdraw = async () => {
-    if (!sharesToWithdraw || isNaN(parseFloat(sharesToWithdraw)) || parseFloat(sharesToWithdraw) <= 0) {
-      alert("Please enter a valid number of shares");
+    if (!sharesToWithdraw || sharesToWithdraw.trim() === "") {
+      alert("Please enter a number of shares to withdraw");
       return;
     }
 
-    const sharesBigInt = BigInt(Math.floor(parseFloat(sharesToWithdraw)));
-    const availableBigInt = BigInt(availableShares);
+    // Parse shares as BigInt directly from string (shares are stored with 6 decimals)
+    let sharesBigInt: bigint;
+    try {
+      // Try to parse as BigInt directly (handles large numbers)
+      sharesBigInt = BigInt(sharesToWithdraw);
+    } catch (err) {
+      alert("Invalid shares amount. Please enter a valid number.");
+      return;
+    }
+
+    if (sharesBigInt <= 0n) {
+      alert("Shares amount must be greater than 0");
+      return;
+    }
+
+    const availableBigInt = BigInt(availableShares || "0");
+
+    if (availableBigInt === 0n) {
+      alert("You have no shares to withdraw in this tranche");
+      return;
+    }
 
     if (sharesBigInt > availableBigInt) {
-      alert("Insufficient shares");
+      alert(`Insufficient shares. You have ${availableShares} shares available.`);
       return;
     }
 
     try {
+      const trancheName = selectedTranche === Tranche.Senior ? "Senior" : selectedTranche === Tranche.Mezz ? "Mezz" : "Junior";
+      console.log("Withdrawing:", {
+        shares: sharesBigInt.toString(),
+        tranche: selectedTranche,
+        trancheName,
+        available: availableBigInt.toString(),
+        userValue: position.value,
+        sharePrice: position.sharePrice,
+      });
+      
+      // Double-check tranche value
+      if (selectedTranche !== Tranche.Senior && selectedTranche !== Tranche.Mezz && selectedTranche !== Tranche.Junior) {
+        throw new Error(`Invalid tranche value: ${selectedTranche}. Expected 0 (Senior), 1 (Mezz), or 2 (Junior).`);
+      }
+      
       await withdraw(sharesBigInt, selectedTranche);
+      
       // Wait for transaction confirmation
       setTimeout(() => {
         refetchAll();
         setSharesToWithdraw("");
       }, 3000);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Withdraw failed:", err);
+      console.error("Error context:", {
+        shares: sharesBigInt.toString(),
+        tranche: selectedTranche,
+        trancheName: selectedTranche === Tranche.Senior ? "Senior" : selectedTranche === Tranche.Mezz ? "Mezz" : "Junior",
+        available: availableBigInt.toString(),
+      });
+      const errorMessage = err?.message || err?.toString() || "Unknown error";
+      alert(`Withdraw failed: ${errorMessage}`);
     }
   };
 
@@ -53,7 +96,17 @@ export default function WithdrawPanel() {
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
-      <h2 className="text-xl font-semibold text-gray-900 mb-4">Withdraw Shares</h2>
+      <div className="mb-4">
+        <div className="flex items-center gap-2 mb-2">
+          <h2 className="text-xl font-semibold text-gray-900">Withdraw from Tranche Vault</h2>
+          <span className="px-2 py-0.5 text-xs bg-purple-100 text-purple-800 rounded-full font-medium">
+            Structured Products
+          </span>
+        </div>
+        <p className="text-xs text-gray-500">
+          Withdraw shares from a tranche. Your USDC value depends on the current share price.
+        </p>
+      </div>
 
       <div className="space-y-4">
         <div>
@@ -79,7 +132,7 @@ export default function WithdrawPanel() {
         <div className="bg-gray-50 rounded-md p-3 space-y-2">
           <div className="flex justify-between text-sm">
             <span className="text-gray-600">Available Shares:</span>
-            <span className="font-medium">{availableShares}</span>
+            <span className="font-medium font-mono text-xs">{availableShares}</span>
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-gray-600">Your Value:</span>
@@ -102,21 +155,6 @@ export default function WithdrawPanel() {
           </div>
         </div>
 
-        {/* Explanation if share price is still 1.0 */}
-        {parseFloat(position.sharePrice) === 1.0 && parseFloat(availableShares) > 0 && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
-            <p className="text-sm text-yellow-800 font-medium mb-1">⚠️ Why Your Value is the Same</p>
-            <p className="text-xs text-yellow-700">
-              Your share price is $1.00 because <strong>no epochs have been run yet</strong>.
-              The virtual value hasn't changed, so withdrawing gives you back exactly what you deposited.
-            </p>
-            <p className="text-xs text-yellow-700 mt-2">
-              <strong>To see value changes:</strong> Run an epoch update in the Epoch Management panel below.
-              After an epoch with positive delta, your share price will increase and you'll get more USDC when withdrawing!
-            </p>
-          </div>
-        )}
-
         {/* Estimated Withdrawal Amount */}
         {sharesToWithdraw && parseFloat(sharesToWithdraw) > 0 && (
           <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
@@ -136,11 +174,6 @@ export default function WithdrawPanel() {
               {parseFloat(sharesToWithdraw)} shares × ${parseFloat(position.sharePrice).toFixed(4)} ={" "}
               {(parseFloat(sharesToWithdraw) * parseFloat(position.sharePrice)).toFixed(2)} USDC
             </p>
-            {parseFloat(position.sharePrice) === 1.0 && (
-              <p className="text-xs text-yellow-700 mt-2 bg-yellow-100 rounded p-2">
-                ⚠️ Share price is $1.00 - no epochs have been run yet. Run an epoch update to see value changes!
-              </p>
-            )}
           </div>
         )}
 
@@ -150,13 +183,15 @@ export default function WithdrawPanel() {
           </label>
           <div className="flex gap-2">
             <input
-              type="number"
+              type="text"
               value={sharesToWithdraw}
-              onChange={(e) => setSharesToWithdraw(e.target.value)}
-              placeholder="0"
-              step="1"
-              min="0"
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              onChange={(e) => {
+                // Allow only numbers
+                const value = e.target.value.replace(/[^0-9]/g, "");
+                setSharesToWithdraw(value);
+              }}
+              placeholder="Enter share amount"
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8B5CF6] font-mono text-sm"
             />
             <button
               onClick={handleMax}

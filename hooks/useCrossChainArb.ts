@@ -305,12 +305,13 @@ export const useCrossChainArb = () => {
   // Switch to best chain
   const switchToBestChain = async () => {
     try {
-      await writeContract({
+      const hash = await writeContract({
         address: contractsConfig.crossChainArb.address,
         abi: contractsConfig.crossChainArb.abi,
         functionName: "switchToBestChain",
         args: [],
       });
+      return hash;
     } catch (err) {
       console.error("Switch to best chain error:", err);
       throw err;

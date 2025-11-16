@@ -87,7 +87,17 @@ const DepositPanel = forwardRef<DepositPanelRef>((props, ref) => {
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
-      <h2 className="text-xl font-semibold text-gray-900 mb-4">Deposit USDC</h2>
+      <div className="mb-4">
+        <div className="flex items-center gap-2 mb-2">
+          <h2 className="text-xl font-semibold text-gray-900">Deposit to Tranche Vault</h2>
+          <span className="px-2 py-0.5 text-xs bg-purple-100 text-purple-800 rounded-full font-medium">
+            Structured Products
+          </span>
+        </div>
+        <p className="text-xs text-gray-500">
+          Choose a tranche (Senior/Mezzanine/Junior) and deposit USDC. You'll receive shares based on the current share price.
+        </p>
+      </div>
 
       <div className="space-y-4">
         <div>

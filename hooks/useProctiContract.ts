@@ -28,7 +28,7 @@ export const useProctiContract = () => {
   /**
    * Check if current user is owner
    */
-  const isOwner = address && owner && address.toLowerCase() === owner.toLowerCase();
+  const isOwner = address && owner && typeof owner === 'string' && address.toLowerCase() === owner.toLowerCase();
 
   /**
    * Deposit USDC into a tranche
@@ -70,15 +70,68 @@ export const useProctiContract = () => {
    */
   const withdraw = async (shares: bigint, tranche: Tranche) => {
     try {
-      await writeContract({
+      console.log("Calling withdraw with:", { 
+        shares: shares.toString(), 
+        tranche,
+        trancheName: tranche === Tranche.Senior ? "Senior" : tranche === Tranche.Mezz ? "Mezz" : "Junior"
+      });
+      
+      // Ensure shares is a valid bigint
+      if (shares <= 0n) {
+        throw new Error("Shares must be greater than 0");
+      }
+      
+      // Ensure tranche is valid (0, 1, or 2)
+      if (tranche !== Tranche.Senior && tranche !== Tranche.Mezz && tranche !== Tranche.Junior) {
+        throw new Error(`Invalid tranche: ${tranche}`);
+      }
+      
+      const result = await writeContract({
         address: TRANCHE_VAULT_ADDRESS,
         abi: TRANCHE_VAULT_ABI,
         functionName: "withdraw",
         args: [shares, tranche],
       });
-    } catch (err) {
+      
+      console.log("Withdraw transaction submitted:", result);
+      return result;
+    } catch (err: any) {
       console.error("Withdraw error:", err);
-      throw err;
+      console.error("Error details:", {
+        shares: shares.toString(),
+        tranche,
+        trancheName: tranche === Tranche.Senior ? "Senior" : tranche === Tranche.Mezz ? "Mezz" : "Junior",
+        errorMessage: err?.message,
+        shortMessage: err?.shortMessage,
+        cause: err?.cause,
+        data: err?.data,
+      });
+      
+      // Provide more detailed error messages
+      let errorMsg = "Unknown error";
+      
+      if (err?.message) {
+        errorMsg = err.message;
+      } else if (err?.shortMessage) {
+        errorMsg = err.shortMessage;
+      } else if (err?.toString) {
+        errorMsg = err.toString();
+      }
+      
+      // Check for specific error patterns
+      if (errorMsg.includes("Insufficient")) {
+        errorMsg = `Insufficient funds or shares. ${errorMsg}`;
+      } else if (errorMsg.includes("revert") || errorMsg.includes("execution reverted")) {
+        // Try to extract the revert reason
+        const revertMatch = errorMsg.match(/revert\s+(.+)/i) || errorMsg.match(/reason:\s*(.+)/i);
+        if (revertMatch) {
+          errorMsg = `Transaction reverted: ${revertMatch[1]}`;
+        } else {
+          errorMsg = `Transaction reverted. This might be due to insufficient vault balance, insufficient shares, or other contract constraints.`;
+        }
+      }
+      
+      throw new Error(`Withdraw failed: ${errorMsg}`);
     }
   };
 
@@ -147,10 +200,10 @@ export const useProctiContract = () => {
           ? mezzSharePrice
           : juniorSharePrice;
 
-      if (sharePrice && sharePrice > 0n) {
+      if (sharePrice && typeof sharePrice === 'bigint' && sharePrice > 0n) {
         const amountWei = parseUnits(amount, 6);
         // shares = amount * 1e18 / sharePrice
-        return (amountWei * BigInt(1e18)) / (sharePrice as bigint);
+        return (amountWei * BigInt(1e18)) / sharePrice;
       }
 
       // If no shares exist yet, return 1:1

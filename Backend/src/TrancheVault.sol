@@ -223,17 +223,19 @@ contract TrancheVault {
         
         // Calculate withdrawal amount (can use reserve pool if needed)
         uint256 actualWithdrawAmount;
+        uint256 reserveToUse = 0;
+        
         if (userValue > realUSDCBalance) {
             // Need to use reserve pool
             uint256 needed = userValue - realUSDCBalance;
             if (needed <= reservePool) {
                 // Reserve can cover it - withdraw full amount
-                reservePool -= needed;
+                reserveToUse = needed;
                 actualWithdrawAmount = userValue;
             } else {
                 // Reserve can't cover fully - use what's available
+                reserveToUse = reservePool;
                 actualWithdrawAmount = realUSDCBalance + reservePool;
-                reservePool = 0;
             }
         } else {
             // Normal case: enough real USDC
@@ -245,17 +247,18 @@ contract TrancheVault {
             "TrancheVault: Withdrawal amount must be greater than 0"
         );
         
+        // Check vault has enough real USDC (including reserve if needed) BEFORE modifying state
+        require(
+            (realUSDCBalance + reservePool) >= actualWithdrawAmount,
+            "TrancheVault: Insufficient vault balance"
+        );
+        
         // Calculate and collect withdrawal fee
         uint256 fee = (actualWithdrawAmount * WITHDRAWAL_FEE_BPS) / 10000;
         uint256 netWithdraw = actualWithdrawAmount - fee;
-        reservePool += fee; // Add fee back to reserve
         
-        // Check vault has enough real USDC (including reserve if used)
-        require(
-            realUSDCBalance >= actualWithdrawAmount || 
-            (realUSDCBalance + reservePool >= actualWithdrawAmount),
-            "TrancheVault: Insufficient vault balance"
-        );
+        // Update reserve pool: subtract what we used, add the fee
+        reservePool = reservePool - reserveToUse + fee;
         
         // Update state (burn shares, decrease virtual value)
         position.shares -= shares;

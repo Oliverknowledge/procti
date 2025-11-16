@@ -305,8 +305,18 @@ contract SentinelVault {
                 }
                 _setMode(MODE_DEFENSIVE, price, "DEFENSIVE: risk detected");
                 modeChanged = true;
+            } else if (currentMode == MODE_DEFENSIVE) {
+                // Already in Defensive mode - check for unallocated vault funds
+                uint256 vaultBalance = usdc.balanceOf(address(this));
+                if (vaultBalance > 0) {
+                    // Allocate unallocated vault funds to SafePool
+                    _safeApprove(address(safePool), vaultBalance);
+                    safePool.deposit(vaultBalance);
+                    amountMoved = vaultBalance;
+                    modeChanged = true; // Mark as changed to emit proper event
+                }
             }
-            // If already in Defensive mode, emit event with current state
+            // If no mode change and no funds moved, emit event with current state
             if (!modeChanged) {
                 emit Rebalanced(MODE_DEFENSIVE, 0);
             } else {
@@ -331,8 +341,18 @@ contract SentinelVault {
                 }
                 _setMode(MODE_FARMING, price, "FARMING: normal conditions");
                 modeChanged = true;
+            } else if (currentMode == MODE_FARMING) {
+                // Already in Farming mode - check for unallocated vault funds
+                uint256 vaultBalance = usdc.balanceOf(address(this));
+                if (vaultBalance > 0) {
+                    // Allocate unallocated vault funds to YieldPool
+                    _safeApprove(address(yieldPool), vaultBalance);
+                    yieldPool.deposit(vaultBalance);
+                    amountMoved = vaultBalance;
+                    modeChanged = true; // Mark as changed to emit proper event
+                }
             }
-            // If already in Farming mode, emit event with current state
+            // If no mode change and no funds moved, emit event with current state
             if (!modeChanged) {
                 emit Rebalanced(MODE_FARMING, 0);
             } else {
