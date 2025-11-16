@@ -33,6 +33,10 @@ After deploying the contracts, fill in the addresses below and share this file w
 ### Token Address
 **USDC:** `0x3600000000000000000000000000000000000000`
 
+### TrancheVault System (NEW - Deployed)
+**TrancheVault:** `0x7D5b0bcf399F2Fbe590b01fAE7C885C53663A6CB` ← **Tranche-based structured vault**
+**MockScoringContract:** `0x7c718Ffea9C625B9937fE99B270BBeAF64027d22` ← **Scoring oracle for testing**
+
 ---
 
 ## For Frontend Integration
@@ -80,6 +84,8 @@ View your deployed contracts on Arc Testnet Explorer:
 - **YieldPool:** https://testnet.arcscan.app/address/0xC6D145006Cd18C7b22D584737A8909DdF3b839D5
 - **OracleFeed:** https://testnet.arcscan.app/address/0xd8A5E7ACa9A2B61d223Ea993749B5F6576aa503f
 - **USDC:** https://testnet.arcscan.app/address/0x3600000000000000000000000000000000000000
+- **TrancheVault:** https://testnet.arcscan.app/address/0x7D5b0bcf399F2Fbe590b01fAE7C885C53663A6CB
+- **MockScoringContract:** https://testnet.arcscan.app/address/0x7c718Ffea9C625B9937fE99B270BBeAF64027d22
 
 ---
 

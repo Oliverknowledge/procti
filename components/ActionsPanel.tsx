@@ -156,7 +156,7 @@ export default function ActionsPanel() {
 
       <div className="space-y-4">
         {/* Deposit Section */}
-        <div className="bg-white border border-gray-200 rounded-sm p-5">
+        <div className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
           <div className="flex justify-between items-center mb-3">
             <label className="text-sm text-gray-900">Deposit</label>
             <span className="text-xs text-gray-500">
@@ -172,7 +172,7 @@ export default function ActionsPanel() {
               value={depositAmount}
               onChange={(e) => setDepositAmount(e.target.value)}
               placeholder="0.00"
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-sm focus:outline-none focus:border-blue-500 text-gray-900 bg-white disabled:bg-gray-50 disabled:text-gray-500"
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#8B5CF6] focus:ring-2 focus:ring-[#8B5CF6] text-gray-900 bg-white disabled:bg-gray-50 disabled:text-gray-500"
               disabled={isLoading}
             />
             <button
@@ -184,7 +184,7 @@ export default function ActionsPanel() {
                 parseFloat(depositAmount) <= 0 ||
                 parseFloat(depositAmount) > parseFloat(usdcBalance || "0")
               }
-              className="px-5 py-2 bg-blue-600 text-white rounded-sm font-medium hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+              className="px-5 py-2 bg-[#8B5CF6] text-white rounded-lg font-medium hover:bg-[#7C3AED] disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
             >
               Deposit
             </button>
@@ -192,7 +192,7 @@ export default function ActionsPanel() {
         </div>
 
         {/* Withdraw Section */}
-        <div className="bg-white border border-gray-200 rounded-sm p-5">
+        <div className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
           <label className="block text-sm text-gray-900 mb-3">Withdraw</label>
           <div className="flex gap-2">
             <input
@@ -202,7 +202,7 @@ export default function ActionsPanel() {
               value={withdrawAmount}
               onChange={(e) => setWithdrawAmount(e.target.value)}
               placeholder="0.00"
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-sm focus:outline-none focus:border-blue-500 text-gray-900 bg-white disabled:bg-gray-50 disabled:text-gray-500"
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#8B5CF6] focus:ring-2 focus:ring-[#8B5CF6] text-gray-900 bg-white disabled:bg-gray-50 disabled:text-gray-500"
               disabled={isLoading}
             />
             <button
@@ -217,14 +217,14 @@ export default function ActionsPanel() {
         </div>
 
         {/* Rebalance Section */}
-        <div className="bg-white border border-gray-200 rounded-sm p-5">
+        <div className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
           <label className="block text-sm text-gray-900 mb-2">Rebalance</label>
           <p className="text-xs text-gray-500 mb-3">
             Rebalancing is <strong>automatic</strong>. The vault monitors the active chain's price ({activeChain || "loading..."}) 
             and automatically moves funds between Yield Pool and Safe Pool based on price thresholds.
           </p>
-          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-sm">
-            <p className="text-xs text-blue-800">
+          <div className="mb-4 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+            <p className="text-xs text-purple-800">
               <strong>Auto-Rebalance:</strong> When price crosses $0.999 threshold or changes significantly, 
               funds are automatically rebalanced. Manual rebalance available below.
             </p>
@@ -240,7 +240,7 @@ export default function ActionsPanel() {
         </div>
 
         {/* Simulate Risk Section */}
-        <div className="bg-white border border-gray-200 rounded-sm p-5">
+        <div className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
           <label className="block text-sm text-gray-900 mb-2">Risk Simulation</label>
           <p className="text-xs text-gray-500 mb-3">
             Set a custom price to simulate a market drop and trigger rebalance.

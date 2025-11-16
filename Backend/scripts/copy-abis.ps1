@@ -9,7 +9,7 @@ if (-not (Test-Path "abi")) {
 }
 
 # Copy ABIs from out/ directory
-$contracts = @("SentinelVault", "YieldPool", "SafePool", "OracleFeed", "IERC20")
+$contracts = @("SentinelVault", "YieldPool", "SafePool", "OracleFeed", "IERC20", "TrancheVault", "MockScoringContract")
 
 foreach ($contract in $contracts) {
     $sourcePath = "out\$contract.sol\$contract.json"

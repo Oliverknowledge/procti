@@ -1,14 +1,19 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useAccount } from "wagmi";
 import { useCrossChainArb } from "@/hooks/useCrossChainArb";
 import { useOracleSync } from "@/hooks/useOracleSync";
 
 export default function ActiveChainDisplay() {
+  const { isConnected } = useAccount();
   const { activeChain, bestChain, switchToBestChain, refetchActiveChain, refetchBestChain, isPending, isConfirming, isConfirmed, error } = useCrossChainArb();
   const [isSwitching, setIsSwitching] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
   const [rateLimitError, setRateLimitError] = useState<string | null>(null);
+  const [lastSwitchAttempt, setLastSwitchAttempt] = useState<number>(0);
+  const [autoSwitchEnabled, setAutoSwitchEnabled] = useState(true);
+  const [isAutoSwitching, setIsAutoSwitching] = useState(false);
   
   // Automatically sync oracle price when chain changes
   useOracleSync();
@@ -28,8 +33,10 @@ export default function ActiveChainDisplay() {
     if (isConfirmed) {
       console.log("Chain switch transaction confirmed!");
       setIsSwitching(false);
+      setIsAutoSwitching(false);
       setRetryCount(0); // Reset retry count on success
       setRateLimitError(null); // Clear rate limit error
+      setLastSwitchAttempt(Date.now()); // Update last switch time
       // Wait a bit for the chain to update on-chain, then refetch
       setTimeout(() => {
         refetchActiveChain();
@@ -37,6 +44,91 @@ export default function ActiveChainDisplay() {
       }, 2000);
     }
   }, [isConfirmed, refetchActiveChain, refetchBestChain]);
+
+  // Automatic chain switching with safeguards
+  useEffect(() => {
+    // Don't auto-switch if:
+    // 1. Wallet not connected
+    // 2. Auto-switch is disabled
+    // 3. Already switching (manual or auto)
+    // 4. Transaction is pending/confirming
+    // 5. Missing chain data
+    // 6. Already on best chain
+    // 7. Too soon since last switch attempt (cooldown: 30 seconds)
+    if (
+      !isConnected ||
+      !autoSwitchEnabled ||
+      isSwitching ||
+      isAutoSwitching ||
+      isPending ||
+      isConfirming ||
+      !activeChain ||
+      !bestChain ||
+      activeChain === bestChain ||
+      Date.now() - lastSwitchAttempt < 30000 // 30 second cooldown
+    ) {
+      return;
+    }
+
+    // Additional safeguard: Check if we've had recent errors
+    if (error && Date.now() - lastSwitchAttempt < 60000) {
+      // If we had an error in the last minute, wait longer
+      console.log("Recent error detected, waiting before auto-switch...");
+      return;
+    }
+
+    // Auto-switch to best chain
+    const performAutoSwitch = async () => {
+      console.log(`[Auto-Switch] Detected best chain change: ${activeChain} → ${bestChain}`);
+      setIsAutoSwitching(true);
+      setLastSwitchAttempt(Date.now());
+      
+      try {
+        await switchToBestChain();
+        console.log("[Auto-Switch] Transaction submitted successfully");
+      } catch (error: any) {
+        console.error("[Auto-Switch] Error:", error);
+        setIsAutoSwitching(false);
+        
+        // Don't auto-retry on user rejection or revert
+        const isUserRejection = 
+          error?.code === 4001 ||
+          error?.message?.includes("rejected") ||
+          error?.message?.includes("User rejected");
+        
+        const isRevert = 
+          error?.message?.includes("revert") ||
+          error?.message?.includes("execution reverted");
+        
+        if (isUserRejection || isRevert) {
+          console.log("[Auto-Switch] User rejection or revert - disabling auto-switch temporarily");
+          setAutoSwitchEnabled(false);
+          // Re-enable after 5 minutes
+          setTimeout(() => {
+            setAutoSwitchEnabled(true);
+            console.log("[Auto-Switch] Re-enabled after cooldown");
+          }, 300000);
+        }
+      }
+    };
+
+    // Small delay to avoid rapid switching
+    const timeoutId = setTimeout(performAutoSwitch, 2000);
+    
+    return () => clearTimeout(timeoutId);
+  }, [
+    isConnected,
+    activeChain,
+    bestChain,
+    autoSwitchEnabled,
+    isSwitching,
+    isAutoSwitching,
+    isPending,
+    isConfirming,
+    lastSwitchAttempt,
+    error,
+    switchToBestChain,
+  ]);
 
   // Clear switching state if transaction fails or errors
   useEffect(() => {
@@ -125,7 +217,7 @@ export default function ActiveChainDisplay() {
   const isOptimal = activeChain === bestChain;
 
   return (
-    <div className="bg-white border border-gray-200 rounded-sm p-5">
+    <div className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
       <h2 className="text-lg font-medium text-gray-900 mb-4">Active Chain</h2>
       
       <div className="space-y-3">
@@ -141,13 +233,33 @@ export default function ActiveChainDisplay() {
       </div>
 
       {!isOptimal && bestChain && (
-        <div className="mt-4">
+        <div className="mt-4 space-y-3">
+          {/* Auto-switch toggle */}
+          <div className="flex items-center justify-between p-2 bg-gray-50 rounded-sm">
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="autoSwitch"
+                checked={autoSwitchEnabled}
+                onChange={(e) => setAutoSwitchEnabled(e.target.checked)}
+                className="w-4 h-4 text-[#8B5CF6] border-gray-300 rounded focus:ring-[#8B5CF6]"
+              />
+              <label htmlFor="autoSwitch" className="text-sm text-gray-700 cursor-pointer">
+                Auto-switch enabled
+              </label>
+            </div>
+            {isAutoSwitching && (
+              <span className="text-xs text-purple-600 font-medium">Auto-switching...</span>
+            )}
+          </div>
+
+          {/* Manual switch button */}
           <button
             onClick={handleSwitch}
-            disabled={isSwitching || isPending || isConfirming}
-            className="w-full px-4 py-2 bg-blue-600 text-white rounded-sm hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-sm font-medium"
+            disabled={isSwitching || isAutoSwitching || isPending || isConfirming}
+            className="w-full px-4 py-2 bg-[#8B5CF6] text-white rounded-lg hover:bg-[#7C3AED] disabled:bg-gray-300 disabled:cursor-not-allowed text-sm font-medium"
           >
-            {isSwitching || isPending || isConfirming 
+            {isSwitching || isAutoSwitching || isPending || isConfirming
               ? (isPending ? "Waiting for wallet..." : isConfirming ? "Confirming transaction..." : "Switching...") 
               : `Switch to ${bestChain}`}
           </button>
@@ -182,7 +294,7 @@ export default function ActiveChainDisplay() {
                     // Try again
                     handleSwitch();
                   }}
-                  className="text-xs px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                  className="text-xs px-3 py-1 bg-[#8B5CF6] text-white rounded-lg hover:bg-[#7C3AED] disabled:bg-gray-300 disabled:cursor-not-allowed"
                   disabled={isSwitching || isPending || isConfirming}
                 >
                   {retryCount > 0 ? `Retry (${retryCount})` : "Retry Now"}
@@ -206,10 +318,10 @@ export default function ActiveChainDisplay() {
             </div>
           )}
           {isPending && (
-            <p className="mt-2 text-xs text-blue-600">Please approve the transaction in your wallet...</p>
+            <p className="mt-2 text-xs text-purple-600">Please approve the transaction in your wallet...</p>
           )}
           {isConfirming && (
-            <p className="mt-2 text-xs text-blue-600">Transaction submitted, waiting for confirmation...</p>
+            <p className="mt-2 text-xs text-purple-600">Transaction submitted, waiting for confirmation...</p>
           )}
         </div>
       )}
@@ -217,6 +329,15 @@ export default function ActiveChainDisplay() {
       {isOptimal && (
         <div className="mt-4 px-3 py-2 bg-green-50 border border-green-200 rounded-sm">
           <p className="text-sm text-green-800 font-medium">✓ Optimal Chain Selected</p>
+          {autoSwitchEnabled && isConnected && (
+            <p className="text-xs text-green-600 mt-1">Auto-switch is monitoring for better chains</p>
+          )}
+        </div>
+      )}
+
+      {!isConnected && (
+        <div className="mt-4 px-3 py-2 bg-yellow-50 border border-yellow-200 rounded-sm">
+          <p className="text-xs text-yellow-800">⚠️ Connect your wallet to enable auto-switching</p>
         </div>
       )}
     </div>

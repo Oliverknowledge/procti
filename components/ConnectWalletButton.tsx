@@ -39,9 +39,9 @@ export default function ConnectWalletButton() {
                     <button
                       onClick={openConnectModal}
                       type="button"
-                      className="px-5 py-2 bg-blue-600 text-white rounded-sm font-medium hover:bg-blue-700 transition-colors"
+                      className="px-5 py-2 bg-[#8B5CF6] text-white rounded-lg font-medium hover:bg-[#7C3AED] transition-colors"
                     >
-                      Connect Wallet
+                      Connect
                     </button>
                   );
                 }
@@ -65,7 +65,7 @@ export default function ConnectWalletButton() {
                       type="button"
                       className="px-4 py-2 bg-gray-100 text-gray-900 rounded-sm font-medium hover:bg-gray-200 transition-colors flex items-center gap-2"
                     >
-                      <div className="w-5 h-5 rounded-full bg-blue-500"></div>
+                      <div className="w-5 h-5 rounded-full bg-[#8B5CF6]"></div>
                       <span className="text-sm">
                         {account.displayName}
                       </span>

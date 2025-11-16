@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import Link from "next/link";
 import ConnectWalletButton from "@/components/ConnectWalletButton";
 import VaultDashboard from "@/components/VaultDashboard";
 import ActionsPanel from "@/components/ActionsPanel";
@@ -81,11 +82,19 @@ export default function Home() {
   ]);
 
   return (
-    <div className="min-h-screen bg-[#fafafa]">
+    <div className="min-h-screen bg-white">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200/50">
+      <header className="bg-white border-b border-gray-200">
         <div className="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
-          <h1 className="text-xl font-medium text-gray-900">Procti</h1>
+          <div className="flex items-center gap-4">
+            <h1 className="text-2xl font-semibold text-gray-900">Procti</h1>
+            <Link
+              href="/tranches"
+              className="px-4 py-2 bg-[#8B5CF6] text-white rounded-lg font-medium hover:bg-[#7C3AED] transition-colors text-sm"
+            >
+              Tranche Vault
+            </Link>
+          </div>
           <ConnectWalletButton />
         </div>
       </header>

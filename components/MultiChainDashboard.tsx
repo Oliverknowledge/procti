@@ -7,7 +7,7 @@ export default function MultiChainDashboard() {
 
   if (isLoadingChains) {
     return (
-      <div className="bg-white border border-gray-200 rounded-sm p-5">
+      <div className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
         <h2 className="text-lg font-medium text-gray-900 mb-4">Multi-Chain Dashboard</h2>
         <p className="text-sm text-gray-500">Loading chain data...</p>
       </div>
@@ -16,7 +16,7 @@ export default function MultiChainDashboard() {
 
   if (chainData.length === 0) {
     return (
-      <div className="bg-white border border-gray-200 rounded-sm p-5">
+      <div className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
         <h2 className="text-lg font-medium text-gray-900 mb-4">Multi-Chain Dashboard</h2>
         <p className="text-sm text-gray-500">No chain data available</p>
       </div>
@@ -32,7 +32,7 @@ export default function MultiChainDashboard() {
   );
 
   return (
-    <div className="bg-white border border-gray-200 rounded-sm p-5">
+    <div className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-lg font-medium text-gray-900">Multi-Chain Dashboard</h2>
         {bestChain && (
@@ -43,7 +43,7 @@ export default function MultiChainDashboard() {
         )}
       </div>
       {allSame && (
-        <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-sm">
+        <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
           <p className="text-xs text-yellow-800">
             <strong>Note:</strong> All chains currently have the same values. Use the &quot;Chain Data Manager&quot; below to set different prices, yields, and risk scores for each chain.
           </p>
@@ -58,7 +58,7 @@ export default function MultiChainDashboard() {
           return (
             <div
               key={chain.name}
-              className={`p-4 border rounded-sm ${
+              className={`p-4 border rounded-lg ${
                 isBest ? "border-green-500 bg-green-50 ring-1 ring-green-500" : "border-gray-200"
               }`}
             >

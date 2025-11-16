@@ -26,7 +26,7 @@ export default function RiskProfile() {
   };
 
   return (
-    <div className="bg-white border border-gray-200 rounded-sm p-5">
+    <div className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
       <h3 className="text-sm font-medium text-gray-900 mb-4">Risk Profile</h3>
       
       <div className="mb-4">
@@ -46,9 +46,9 @@ export default function RiskProfile() {
             type="button"
             onClick={() => handleSetRiskProfile(profile.value)}
             disabled={isPending || isSetting || Number(userRiskProfile) === profile.value}
-            className={`w-full text-left px-4 py-3 rounded-sm border transition-colors ${
+            className={`w-full text-left px-4 py-3 rounded-lg border transition-colors ${
               Number(userRiskProfile) === profile.value
-                ? "bg-blue-50 border-blue-500"
+                ? "bg-purple-50 border-[#8B5CF6]"
                 : "bg-gray-50 border-gray-200 hover:bg-gray-100"
             } disabled:opacity-50 disabled:cursor-not-allowed`}
           >

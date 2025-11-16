@@ -8,7 +8,7 @@ echo "Copying ABIs to /abi folder..."
 mkdir -p abi
 
 # Copy ABIs from out/ directory
-contracts=("SentinelVault" "YieldPool" "SafePool" "OracleFeed" "IERC20")
+contracts=("SentinelVault" "YieldPool" "SafePool" "OracleFeed" "IERC20" "TrancheVault" "MockScoringContract")
 
 for contract in "${contracts[@]}"; do
     source_path="out/${contract}.sol/${contract}.json"

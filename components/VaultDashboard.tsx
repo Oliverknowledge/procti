@@ -41,7 +41,7 @@ export default function VaultDashboard() {
   return (
     <div className="w-full space-y-8">
       {/* Mode Indicator */}
-      <div className={`bg-white border-l-4 ${getModeBorder()} rounded-sm p-6 shadow-sm`}>
+      <div className={`bg-white border-l-4 ${getModeBorder()} rounded-lg p-6 shadow-sm`}>
         <div className="text-xs text-gray-500 uppercase tracking-wider mb-2">Current Mode</div>
         <div className={`text-4xl font-medium ${getModeColor()}`}>
           {modeString}
@@ -51,7 +51,7 @@ export default function VaultDashboard() {
       {/* Balances Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {/* User Balance */}
-        <div className="bg-white rounded-sm border border-gray-200 p-5">
+        <div className="bg-white rounded-lg border border-gray-200 p-5 shadow-sm">
           <div className="text-xs text-gray-500 mb-3">Your Balance</div>
           <p className="text-2xl font-medium text-gray-900 mb-1">
             {isLoadingBalance
@@ -67,7 +67,7 @@ export default function VaultDashboard() {
         </div>
 
         {/* Vault Balance */}
-        <div className="bg-white rounded-sm border border-gray-200 p-5">
+        <div className="bg-white rounded-lg border border-gray-200 p-5 shadow-sm">
           <div className="text-xs text-gray-500 mb-3">Vault</div>
           <p className="text-2xl font-medium text-gray-900 mb-1">
             {parseFloat(vaultBalance).toLocaleString(undefined, {
@@ -79,7 +79,7 @@ export default function VaultDashboard() {
         </div>
 
         {/* Yield Pool Balance */}
-        <div className="bg-white rounded-sm border border-gray-200 p-5">
+        <div className="bg-white rounded-lg border border-gray-200 p-5 shadow-sm">
           <div className="text-xs text-gray-500 mb-3">Yield Pool</div>
           <p className="text-2xl font-medium text-gray-900 mb-1">
             {parseFloat(yieldPoolBalance).toLocaleString(undefined, {
@@ -91,7 +91,7 @@ export default function VaultDashboard() {
         </div>
 
         {/* Safe Pool Balance */}
-        <div className="bg-white rounded-sm border border-gray-200 p-5">
+        <div className="bg-white rounded-lg border border-gray-200 p-5 shadow-sm">
           <div className="text-xs text-gray-500 mb-3">Safe Pool</div>
           <p className="text-2xl font-medium text-gray-900 mb-1">
             {parseFloat(safePoolBalance).toLocaleString(undefined, {
@@ -143,7 +143,7 @@ export default function VaultDashboard() {
                       {chainBalance.chain}
                     </span>
                     {chainBalance.chain === activeChain && (
-                      <span className="px-2 py-0.5 text-xs bg-blue-100 text-blue-800 rounded">
+                      <span className="px-2 py-0.5 text-xs bg-purple-100 text-purple-800 rounded">
                         Active
                       </span>
                     )}
@@ -163,7 +163,7 @@ export default function VaultDashboard() {
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
                   <div
-                    className="bg-blue-600 h-2 rounded-full transition-all"
+                    className="bg-[#8B5CF6] h-2 rounded-full transition-all"
                     style={{ width: `${chainBalance.percentage}%` }}
                   />
                 </div>

@@ -54,7 +54,7 @@ export default function ArbitrageDetector() {
   const availableChains = supportedChains.length > 0 ? supportedChains : ["Arc", "Ethereum", "Arbitrum", "Base", "Optimism"];
 
   return (
-    <div className="bg-white border border-gray-200 rounded-sm p-5">
+    <div className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
       <div className="mb-4">
         <h2 className="text-lg font-medium text-gray-900 mb-2">Arbitrage Detection</h2>
         <p className="text-xs text-gray-500">
@@ -69,7 +69,7 @@ export default function ArbitrageDetector() {
             <select
               value={chainA}
               onChange={(e) => setChainA(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-sm focus:outline-none focus:border-blue-500 text-gray-900 bg-white"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#8B5CF6] focus:ring-2 focus:ring-[#8B5CF6] text-gray-900 bg-white"
               disabled={isPending || isChecking}
             >
               {availableChains.map((chain) => (
@@ -87,7 +87,7 @@ export default function ArbitrageDetector() {
             <select
               value={chainB}
               onChange={(e) => setChainB(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-sm focus:outline-none focus:border-blue-500 text-gray-900 bg-white"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#8B5CF6] focus:ring-2 focus:ring-[#8B5CF6] text-gray-900 bg-white"
               disabled={isPending || isChecking}
             >
               {availableChains.map((chain) => (
@@ -117,14 +117,14 @@ export default function ArbitrageDetector() {
           type="button"
           onClick={handleDetect}
           disabled={isPending || isChecking || chainA === chainB}
-          className="w-full px-6 py-2 bg-blue-600 text-white rounded-sm font-medium hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+          className="w-full px-6 py-2 bg-[#8B5CF6] text-white rounded-lg font-medium hover:bg-[#7C3AED] disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
         >
           {isChecking ? "Checking..." : "Detect Arbitrage"}
         </button>
 
         {result && (
           <div
-            className={`p-4 rounded-sm border ${
+            className={`p-4 rounded-lg border ${
               result.profitable
                 ? "bg-green-50 border-green-500 text-green-900"
                 : "bg-gray-50 border-gray-300 text-gray-700"
